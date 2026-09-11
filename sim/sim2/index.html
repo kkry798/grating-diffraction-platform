@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>多缝干涉 · 两部分选择</title>
+<style>
+:root{
+    --bg0:#070b1f;
+    --bg1:#0d1233;
+    --bg2:#1b1f4b;
+    --ink:#eef1ff;
+    --ink-dim:#9aa6d6;
+    --violet:#8a5cff;
+    --blue:#4da6ff;
+    --cyan:#2ce8ff;
+    --green:#5cf0b0;
+    --yellow:#ffd75e;
+    --orange:#ff9a4d;
+    --red:#ff5c7a;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;}
+body{
+    min-height:100vh;
+    color:var(--ink);
+    background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(90,80,200,.30), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 8% 30%, rgba(46,166,255,.14), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 92% 70%, rgba(255,92,122,.10), transparent 60%),
+        linear-gradient(180deg,var(--bg0),var(--bg1) 45%,#05081a);
+    background-attachment:fixed;
+    padding:40px 20px;
+}
+.container{max-width:860px;margin:0 auto;}
+.back{
+    display:inline-block;
+    color:#c8d6e5;
+    text-decoration:none;
+    font-size:14px;
+    margin-bottom:24px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    padding:8px 16px;
+    border-radius:8px;
+    transition:all .25s;
+}
+.back:hover{border-color:var(--blue);color:#fff;}
+h1{
+    text-align:center;
+    font-size:clamp(26px,5vw,40px);
+    font-weight:800;
+    background:linear-gradient(180deg,#fff,#cdd9ff 55%,#8fa8ff);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:10px;
+}
+.sub{
+    text-align:center;
+    color:#cfe0ff;
+    font-size:15px;
+    letter-spacing:.24em;
+    margin-bottom:6px;
+}
+.sub .en{
+    display:block;
+    font-size:12px;
+    letter-spacing:.3em;
+    color:#7d8ab8;
+    margin-top:8px;
+    text-transform:uppercase;
+}
+.spectrum-line{
+    height:3px;border-radius:3px;
+    background:linear-gradient(90deg,var(--violet),var(--blue),var(--cyan),var(--green),var(--yellow),var(--orange),var(--red),var(--violet));
+    background-size:200% 100%;
+    animation:flow 8s linear infinite;
+    box-shadow:0 0 16px rgba(130,130,255,.5);
+    margin:28px auto 36px;
+    max-width:560px;
+}
+@keyframes flow{from{background-position:0 0;}to{background-position:200% 0;}}
+.btn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:26px;}
+.part-btn{
+    display:flex;flex-direction:column;gap:12px;
+    padding:28px 26px;
+    border-radius:16px;
+    text-decoration:none;
+    color:inherit;
+    background:linear-gradient(180deg, rgba(30,36,72,.92), rgba(18,22,48,.94));
+    border:1px solid rgba(150,160,230,.16);
+    box-shadow:0 18px 40px rgba(0,0,0,.45);
+    transition:transform .35s cubic-bezier(.2,.7,.3,1), box-shadow .35s, border-color .35s;
+}
+.part-btn:hover{
+    transform:translateY(-8px);
+    border-color:rgba(150,170,255,.55);
+    box-shadow:0 30px 60px rgba(30,40,120,.55);
+}
+.part-btn .num{
+    font-size:13px;font-weight:700;letter-spacing:.06em;
+    color:#e6ecff;
+    width:fit-content;
+    padding:5px 13px;border-radius:999px;
+    background:linear-gradient(120deg, rgba(138,92,255,.35), rgba(44,232,255,.28));
+    border:1px solid rgba(160,170,255,.30);
+}
+.part-btn .title{
+    font-size:24px;font-weight:800;color:#fff;
+}
+.part-btn .desc{
+    font-size:14px;color:#b4bfdd;line-height:1.7;
+}
+.part-btn .go{
+    margin-top:4px;font-size:14px;font-weight:700;
+    color:#eaf2ff;
+    display:inline-flex;align-items:center;gap:8px;
+}
+.part-btn .go .arrow{transition:transform .25s;}
+.part-btn:hover .go .arrow{transform:translateX(4px);}
+.part-btn.v .go{color:var(--green);}
+.part-btn.i .go{color:var(--cyan);}
+footer{margin-top:56px;text-align:center;color:#66739e;font-size:12.5px;}
+@media (max-width:600px){
+    body{padding:28px 14px 32px;}
+    h1{letter-spacing:0;}
+    .sub{font-size:13px;letter-spacing:.14em;}
+    .sub .en{letter-spacing:.22em;}
+    .spectrum-line{margin:20px auto 26px;}
+    .btn-grid{gap:20px;}
+    .part-btn{padding:22px 20px;}
+    .part-btn .title{font-size:21px;}
+    .back{font-size:13px;padding:7px 14px;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="../index.html">← 返回平台首页</a>
+    <h1>多缝干涉</h1>
+    <p class="sub">
+        请选择要进入的部分
+        <span class="en">Multi-slit Interference · Choose a Part</span>
+    </p>
+    <div class="spectrum-line"></div>
+
+    <div class="btn-grid">
+        <a class="part-btn v" href="./vector.html">
+            <span class="num">① 矢量合成</span>
+            <span class="title">矢量合成</span>
+            <span class="desc">各缝振动矢量首尾相接，动态观察合振幅随相位差的变化，理解多缝干涉的矢量合成机制。</span>
+            <span class="go">进入矢量部分 <span class="arrow">→</span></span>
+        </a>
+
+        <a class="part-btn i" href="./interference.html">
+            <span class="num">② 干涉图样</span>
+            <span class="title">干涉图样</span>
+            <span class="desc">多缝干涉条纹与光强分布曲线，调节缝数、缝间距与波长，观察实际干涉效果。</span>
+            <span class="go">进入干涉图样部分 <span class="arrow">→</span></span>
+        </a>
+    </div>
+
+    <footer>© 虚拟仿真实训资源平台 · 多缝干涉</footer>
+</div>
+</body>
+</html>

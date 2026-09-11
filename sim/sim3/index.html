@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光栅衍射模拟 | 边界拖动干涉主峰等高永久修复</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel-bg: #16213e;
+            --text: #e0e0e0;
+            --accent: #4da6ff;
+            --accent3: #8866ff;
+            --red: #e74c3c;
+            --blue: #3498db;
+            --purple: #9b59b6;
+            --slider-track: #2a3a5c;
+            --border: #2a3a5c;
+            --card: #1e2d4a;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --transition: 0.2s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 16px;
+            color: var(--text);
+            background-image:
+                radial-gradient(ellipse at 50% 0%, rgba(77, 166, 255, 0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(136, 102, 255, 0.04) 0%, transparent 60%);
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .main-display {
+            flex: 1 1 680px;
+            min-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .canvas-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 0;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            border-radius: 0;
+            background: #000;
+            cursor: crosshair;
+        }
+
+        #patternCanvas { height: 300px; }
+        #curveCanvas { height: 170px; }
+        #decomposeCanvas { height: 220px; }
+
+        .canvas-title {
+            color: #8899bb;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            text-align: center;
+            background: #111a33;
+        }
+
+        .decompose-check-wrap {
+            display: flex;
+            gap: 16px;
+            padding: 8px 12px;
+            background: #111a33;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .decompose-check-wrap label {
+            font-size: 0.8rem;
+            color: #ccc;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .control-panel {
+            flex: 0 0 300px;
+            min-width: 280px;
+            background: var(--panel-bg);
+            border-radius: var(--radius);
+            padding: 20px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: 16px;
+        }
+
+        .control-panel h2 {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #7fc4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .control-panel .subtitle {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #8899bb;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #c8d6e5;
+        }
+
+        .control-group label .val {
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 60px;
+            text-align: right;
+            font-family: Consolas, monospace;
+        }
+
+        .unit {
+            font-size: 0.7rem;
+            color: #8899bb;
+            margin-left: 2px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 7px;
+            border-radius: 4px;
+            background: var(--slider-track);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 12px rgba(77, 166, 255, 0.4);
+            cursor: pointer;
+        }
+
+        input[type="range"]:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        input[type="range"]:disabled::-webkit-slider-thumb {
+            border-color: #666;
+            box-shadow: none;
+        }
+
+        .mode-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            background: var(--slider-track);
+            border-radius: 22px;
+            padding: 3px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 9px 6px;
+            border-radius: 19px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            background: transparent;
+            color: #8899bb;
+            white-space: nowrap;
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 10px rgba(77, 166, 255, 0.35);
+        }
+
+        .mode-btn.mercury-active.active {
+            background: var(--accent3);
+        }
+
+        .mode-btn.sun-active.active {
+            background: #ffaa33;
+        }
+
+        .scan-box {
+            background: rgba(77, 166, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px dashed rgba(77, 166, 255, 0.3);
+        }
+
+        .scan-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin: 6px 0;
+        }
+
+        .scan-row label {
+            flex: 1;
+            font-size: 0.8rem;
+        }
+
+        .scan-row input[type="number"] {
+            width: 70px;
+            padding: 3px 4px;
+            background: #16213e;
+            color: #e0e0e0;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .scan-select {
+            width: 100%;
+            padding: 4px;
+            background: #16213e;
+            color: #e0e0e0;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin: 4px 0;
+        }
+
+        .scan-reverse-row {
+            margin: 8px 0 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+
+        .scan-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .scan-btn {
+            flex: 1;
+            padding: 7px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        #startScan {
+            background: #4da6ff;
+            color: #000;
+        }
+
+        #stopScan {
+            background: #ff6b6b;
+            color: #fff;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #8899bb;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            height: 26px;
+            align-items: center;
+        }
+
+        .info-val {
+            color: #c8d6e5;
+            font-weight: 600;
+            font-family: Consolas, monospace;
+            white-space: nowrap;
+            min-width: 90px;
+            text-align: right;
+        }
+
+        .info-highlight {
+            color: #ffcc66 !important;
+        }
+
+        .separator {
+            height: 1px;
+            background: var(--border);
+            margin: 2px 0;
+        }
+
+        @media (max-width: 820px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .main-display {
+                min-width: 0;
+            }
+
+            .control-panel {
+                position: static;
+                min-width: 0;
+            }
+
+            #patternCanvas {
+                height: 220px;
+            }
+
+            #curveCanvas {
+                height: 140px;
+            }
+
+            #decomposeCanvas {
+                height: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-display">
+            <div class="canvas-card">
+                <canvas id="patternCanvas"></canvas>
+            </div>
+
+            <div class="canvas-card" id="curveCard">
+                <canvas id="curveCanvas"></canvas>
+            </div>
+
+            <div class="canvas-card" id="decomposeCard">
+                <div class="canvas-title">分解曲线独立控制开关</div>
+                <div class="decompose-check-wrap">
+                    <label><input type="checkbox" id="chkInter" checked>🔵多光束干涉(蓝虚线)</label>
+                    <label><input type="checkbox" id="chkDiff" checked>🔴单缝衍射包络(红虚线)</label>
+                    <label><input type="checkbox" id="chkTotal" checked>🟣总衍射光强(紫实线)</label>
+                </div>
+                <canvas id="decomposeCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="control-panel" id="controlPanel">
+            <h2>光栅衍射模拟</h2>
+            <div class="subtitle">可调参数控制</div>
+            <div class="separator"></div>
+
+            <div class="control-group">
+                <label>光照模式</label>
+                <div class="mode-toggle" id="modeToggle">
+                    <button class="mode-btn active" data-mode="mono">🔵 单色光</button>
+                    <button class="mode-btn mercury-active" data-mode="mercury">🌡️ 汞灯</button>
+                    <button class="mode-btn sun-active" data-mode="sun">☀️ 太阳光谱</button>
+                </div>
+            </div>
+            <div class="separator"></div>
+
+            <div class="control-group">
+                <label>狭缝个数 <span class="val" id="valN">3</span></label>
+                <input type="range" id="sliderN" min="1" max="100" value="3" step="1">
+            </div>
+            <div class="control-group">
+                <label>光栅常数 d <span><span class="val" id="valD">2000</span><span class="unit">nm</span></span></label>
+                <input type="range" id="sliderD" min="500" max="10000" value="2000" step="10">
+            </div>
+            <div class="control-group">
+                <label>光栅缝比 d/a <span class="val" id="valRatio">3.33</span></label>
+                <input type="range" id="sliderRatio" min="1.05" max="20" value="3.33" step="0.05">
+            </div>
+            <div class="control-group" id="wavelengthGroup">
+                <label>波长 λ <span><span class="val" id="valLambda">550</span><span class="unit">nm</span></span></label>
+                <input type="range" id="sliderLambda" min="380" max="780" value="550" step="1">
+            </div>
+            <div class="control-group">
+                <label>左边界 sinθ(min) <span class="val" id="valSinMin">-0.45</span></label>
+                <input type="range" id="sliderSinMin" min="-0.8" max="0.8" value="-0.45" step="0.01">
+            </div>
+            <div class="control-group">
+                <label>右边界 sinθ(max) <span class="val" id="valSinMax">0.45</span></label>
+                <input type="range" id="sliderSinMax" min="-0.8" max="0.8" value="0.45" step="0.01">
+            </div>
+
+            <div class="separator"></div>
+            <div class="scan-box">
+                <label style="font-weight:bold; margin-bottom:6px; display:block;">⚙️ 参数自动扫描</label>
+                <select class="scan-select" id="scanTarget">
+                    <option value="N">狭缝个数 N</option>
+                    <option value="d">光栅常数 d (nm)</option>
+                    <option value="ratio">缝比 d/a</option>
+                    <option value="lambda">波长 λ (nm)</option>
+                </select>
+                <div class="scan-row">
+                    <label>起始值</label>
+                    <input type="number" id="scanStart" value="3">
+                </div>
+                <div class="scan-row">
+                    <label>终止值</label>
+                    <input type="number" id="scanEnd" value="30">
+                </div>
+                <div class="scan-row">
+                    <label>扫描步长</label>
+                    <input type="number" id="scanStep" value="0.2" step="0.01">
+                </div>
+                <div class="scan-row">
+                    <label>刷新间隔(ms)</label>
+                    <input type="number" id="scanDelay" value="40" min="10">
+                </div>
+                <div class="scan-reverse-row">
+                    <input type="checkbox" id="scanReverse">
+                    <label for="scanReverse">反向扫描（终点→起点）</label>
+                </div>
+                <div class="scan-buttons">
+                    <button class="scan-btn" id="startScan">开始扫描</button>
+                    <button class="scan-btn" id="stopScan">停止扫描</button>
+                </div>
+            </div>
+            <div class="separator"></div>
+
+            <div class="info-row">
+                <span>缝宽 a</span>
+                <span class="info-val" id="infoA">600 nm</span>
+            </div>
+            <div class="info-row">
+                <span>第1级主极大 sinθ₁</span>
+                <span class="info-val" id="infoSinTheta1">0.275</span>
+            </div>
+            <div class="info-row">
+                <span>可见最高级次 m</span>
+                <span class="info-val" id="infoOrders">±1</span>
+            </div>
+            <div class="info-row">
+                <span>缺级情况</span>
+                <span class="info-val info-highlight" id="infoMissing">无缺级</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const patternCanvas = document.getElementById('patternCanvas');
+            const patternCtx = patternCanvas.getContext('2d');
+            const curveCanvas = document.getElementById('curveCanvas');
+            const curveCtx = curveCanvas.getContext('2d');
+            const curveCard = document.getElementById('curveCard');
+            const decomposeCanvas = document.getElementById('decomposeCanvas');
+            const decomposeCtx = decomposeCanvas.getContext('2d');
+            const decomposeCard = document.getElementById('decomposeCard');
+
+            const sliderN = document.getElementById('sliderN');
+            const sliderD = document.getElementById('sliderD');
+            const sliderRatio = document.getElementById('sliderRatio');
+            const sliderLambda = document.getElementById('sliderLambda');
+            const modeBtns = document.querySelectorAll('.mode-btn');
+            const wavelengthGroup = document.getElementById('wavelengthGroup');
+            const sliderSinMin = document.getElementById('sliderSinMin');
+            const sliderSinMax = document.getElementById('sliderSinMax');
+
+            const valN = document.getElementById('valN');
+            const valD = document.getElementById('valD');
+            const valRatio = document.getElementById('valRatio');
+            const valLambda = document.getElementById('valLambda');
+            const valSinMin = document.getElementById('valSinMin');
+            const valSinMax = document.getElementById('valSinMax');
+            const infoA = document.getElementById('infoA');
+            const infoSinTheta1 = document.getElementById('infoSinTheta1');
+            const infoOrders = document.getElementById('infoOrders');
+            const infoMissing = document.getElementById('infoMissing');
+
+            const chkInter = document.getElementById('chkInter');
+            const chkDiff = document.getElementById('chkDiff');
+            const chkTotal = document.getElementById('chkTotal');
+
+            const scanTarget = document.getElementById('scanTarget');
+            const scanStart = document.getElementById('scanStart');
+            const scanEnd = document.getElementById('scanEnd');
+            const scanStep = document.getElementById('scanStep');
+            const scanDelay = document.getElementById('scanDelay');
+            const scanReverse = document.getElementById('scanReverse');
+            const startScanBtn = document.getElementById('startScan');
+            const stopScanBtn = document.getElementById('stopScan');
+
+            let N = Number(sliderN.value);
+            let d = Number(sliderD.value);
+            let ratio = Number(sliderRatio.value);
+            let lambda = Number(sliderLambda.value);
+            let mode = 'mono';
+            let sinThetaMin = Number(sliderSinMin.value);
+            let sinThetaMax = Number(sliderSinMax.value);
+
+            let renderPending = false;
+            let resizeTimer = null;
+            const spectrumCache = {
+                mercury: { list: [], colors: [] },
+                sun: { list: [], colors: [] }
+            };
+
+            let scanTimer = null;
+            let scanRunning = false;
+            let currentScanVal = 0;
+            let stepSign = 1;
+
+            const mercurySpectrumRaw = [
+                { wl: 365.0, intensity: 0.8 },
+                { wl: 404.7, intensity: 1.0 },
+                { wl: 435.8, intensity: 1.0 },
+                { wl: 546.1, intensity: 1.0 },
+                { wl: 577.0, intensity: 0.9 },
+                { wl: 579.1, intensity: 0.9 }
+            ];
+
+            function getSolarSpectrumRaw() {
+                const list = [];
+                const fraunhoferLines = [
+                    { wl: 430.8, depth: 0.8 },
+                    { wl: 486.1, depth: 0.9 },
+                    { wl: 517.3, depth: 0.7 },
+                    { wl: 589.0, depth: 0.95 },
+                    { wl: 589.6, depth: 0.95 },
+                    { wl: 656.3, depth: 0.9 },
+                    { wl: 687.0, depth: 0.7 }
+                ];
+                for (let wl = 380; wl <= 780; wl += 2) {
+                    let baseIntensity = 1.0;
+                    if (wl < 450) baseIntensity = 0.2 + (wl - 380) / 350 * 0.8;
+                    if (wl > 650) baseIntensity = 1.0 - (wl - 650) / 130 * 0.75;
+                    fraunhoferLines.forEach(line => {
+                        const delta = Math.abs(wl - line.wl);
+                        if (delta < 4) {
+                            const fall = 1 - delta / 4;
+                            baseIntensity *= 1 - line.depth * fall;
+                        }
+                    });
+                    list.push({ wl, intensity: baseIntensity });
+                }
+                return list;
+            }
+
+            function buildSpectrumCache() {
+                spectrumCache.mercury.list = mercurySpectrumRaw;
+                spectrumCache.mercury.colors = mercurySpectrumRaw.map(l => wavelengthToRGB(l.wl));
+                const solar = getSolarSpectrumRaw();
+                spectrumCache.sun.list = solar;
+                spectrumCache.sun.colors = solar.map(l => wavelengthToRGB(l.wl));
+            }
+
+            function wavelengthToRGB(wl) {
+                let r = 0, g = 0, b = 0;
+                if (wl >= 380 && wl < 440) { r = -(wl - 440) / 60; b = 1; }
+                else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50; b = 1; }
+                else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
+                else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
+                else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
+                else if (wl >= 645 && wl <= 780) { r = 1; }
+                let factor = 1;
+                if (wl < 420) factor = 0.3 + 0.7 * (wl - 380) / 40;
+                if (wl > 700) factor = 0.3 + 0.7 * (780 - wl) / 80;
+                return { r: Math.max(0, Math.min(1, r * factor)), g: Math.max(0, Math.min(1, g * factor)), b: Math.max(0, Math.min(1, b * factor)) };
+            }
+
+            function sinc(x) { return Math.abs(x) < 1e-9 ? 1 : Math.sin(x) / x; }
+            function interferenceFactor(gamma, Nval) {
+                if (Nval === 1) return 1;
+                if (Math.abs(gamma) < 1e-10) return Nval * Nval;
+                const num = Math.sin(Nval * gamma);
+                const den = Math.sin(gamma);
+                const ad = Math.abs(den);
+                if (ad < 1e-13) return Nval * Nval;
+                return (num * num) / (den * den);
+            }
+            function calcIntensity(theta, n, dVal, ratioA, lam) {
+                const a = dVal / ratioA;
+                const gamma = Math.PI * dVal * theta / lam;
+                const beta = Math.PI * a * theta / lam;
+                const sa = sinc(beta);
+                return sa * sa * interferenceFactor(gamma, n);
+            }
+            function calcInterI(theta, n, dVal, lam) {
+                const gamma = Math.PI * dVal * theta / lam;
+                return interferenceFactor(gamma, n);
+            }
+            function calcDiffI(theta, dVal, ratioA, lam) {
+                const a = dVal / ratioA;
+                const beta = Math.PI * a * theta / lam;
+                return Math.pow(sinc(beta), 2);
+            }
+
+            function resizeCanvases() {
+                const pw = patternCanvas.clientWidth;
+                const ph = patternCanvas.clientHeight;
+                const cw = curveCanvas.clientWidth;
+                const ch = curveCanvas.clientHeight;
+                const dw = decomposeCanvas.clientWidth;
+                const dh = decomposeCanvas.clientHeight;
+                let change = false;
+                if (patternCanvas.width !== pw || patternCanvas.height !== ph) { patternCanvas.width = pw; patternCanvas.height = ph; change = true; }
+                if (curveCanvas.width !== cw || curveCanvas.height !== ch) { curveCanvas.width = cw; curveCanvas.height = ch; change = true; }
+                if (decomposeCanvas.width !== dw || decomposeCanvas.height !== dh) { decomposeCanvas.width = dw; decomposeCanvas.height = dh; change = true; }
+                return change;
+            }
+
+            function ixToTheta(ix, w) { return sinThetaMin + (sinThetaMax - sinThetaMin) * ix / (w - 1); }
+            function thetaToX(th, w) { return (th - sinThetaMin) / (sinThetaMax - sinThetaMin) * (w - 1); }
+
+            function requestDraw() {
+                if (renderPending) return;
+                renderPending = true;
+                requestAnimationFrame(() => { drawAll(); renderPending = false; });
+            }
+            function drawAll() {
+                resizeCanvases();
+                drawPattern();
+                drawCurve();
+                drawDecomposeCurve();
+            }
+
+            function drawPattern() {
+                const w = patternCanvas.width;
+                const h = patternCanvas.height;
+                const sqN = N * N;
+                const imgData = patternCtx.createImageData(w, h);
+                const cache = spectrumCache[mode];
+
+                if (mode === 'mono') {
+                    const rgb = wavelengthToRGB(lambda);
+                    for (let x = 0; x < w; x++) {
+                        const th = ixToTheta(x, w);
+                        const I = calcIntensity(th, N, d, ratio, lambda);
+                        const bright = Math.pow(Math.min(1, I / sqN), 0.55);
+                        const r = Math.round(rgb.r * bright * 255);
+                        const g = Math.round(rgb.g * bright * 255);
+                        const b = Math.round(rgb.b * bright * 255);
+                        const off = x * 4;
+                        for (let y = 0; y < h; y++) {
+                            const idx = y * w * 4 + off;
+                            imgData.data[idx] = r;
+                            imgData.data[idx + 1] = g;
+                            imgData.data[idx + 2] = b;
+                            imgData.data[idx + 3] = 255;
+                        }
+                    }
+                } else {
+                    const list = cache.list;
+                    const colorList = cache.colors;
+                    const cnt = list.length;
+                    for (let x = 0; x < w; x++) {
+                        const th = ixToTheta(x, w);
+                        let tr = 0, tg = 0, tb = 0, maxC = 0;
+                        for (let i = 0; i < cnt; i++) {
+                            const l = list[i];
+                            const c = calcIntensity(th, N, d, ratio, l.wl) / sqN * l.intensity;
+                            maxC = Math.max(maxC, c);
+                            const clr = colorList[i];
+                            tr += clr.r * c;
+                            tg += clr.g * c;
+                            tb += clr.b * c;
+                        }
+                        const scale = maxC > 0 ? (cnt * 0.8) / maxC : cnt * 0.8;
+                        let r = Math.pow(Math.min(1, Math.max(0, tr / scale)), 0.8);
+                        let g = Math.pow(Math.min(1, Math.max(0, tg / scale)), 0.8);
+                        let b = Math.pow(Math.min(1, Math.max(0, tb / scale)), 0.8);
+                        const rr = Math.round(r * 255);
+                        const gg = Math.round(g * 255);
+                        const bb = Math.round(b * 255);
+                        const off = x * 4;
+                        for (let y = 0; y < h; y++) {
+                            const idx = y * w * 4 + off;
+                            imgData.data[idx] = rr;
+                            imgData.data[idx + 1] = gg;
+                            imgData.data[idx + 2] = bb;
+                            imgData.data[idx + 3] = 255;
+                        }
+                    }
+                }
+                patternCtx.putImageData(imgData, 0, 0);
+                const midX = thetaToX(0, w);
+                patternCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+                patternCtx.lineWidth = 1;
+                patternCtx.setLineDash([4,6]);
+                patternCtx.beginPath();
+                patternCtx.moveTo(midX, 0);
+                patternCtx.lineTo(midX, h);
+                patternCtx.stroke();
+                patternCtx.setLineDash([]);
+            }
+
+            // 第二幅曲线：边界拖动动态计算全部主峰，8000采样永久等高
+            function drawCurve() {
+                if (mode === 'sun') {
+                    curveCard.style.display = 'none';
+                    return;
+                }
+                curveCard.style.display = 'block';
+
+                const w = curveCanvas.width;
+                const h = curveCanvas.height;
+                const margin = 30;
+                const sqN = N * N;
+                curveCtx.fillStyle = '#0a0a14';
+                curveCtx.fillRect(0, 0, w, h);
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+                curveCtx.lineWidth = 1;
+                const gx = w / 10, gy = h / 8;
+                for (let i = 0; i <= 10; i++) { curveCtx.beginPath(); curveCtx.moveTo(i * gx, 0); curveCtx.lineTo(i * gx, h); curveCtx.stroke(); }
+                for (let i = 0; i <= 8; i++) { curveCtx.beginPath(); curveCtx.moveTo(0, i * gy); curveCtx.lineTo(w, i * gy); curveCtx.stroke(); }
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+                curveCtx.beginPath(); curveCtx.moveTo(0, h - 1); curveCtx.lineTo(w, h - 1); curveCtx.stroke();
+                const midX = thetaToX(0, w);
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                curveCtx.setLineDash([3,5]);
+                curveCtx.beginPath(); curveCtx.moveTo(midX, 0); curveCtx.lineTo(midX, h); curveCtx.stroke();
+                curveCtx.setLineDash([]);
+
+                if (mode === 'mono') {
+                    const rgb = wavelengthToRGB(lambda);
+                    curveCtx.strokeStyle = `rgb(${Math.round(rgb.r*255)},${Math.round(rgb.g*255)},${Math.round(rgb.b*255)})`;
+                    curveCtx.lineWidth = 2;
+                    curveCtx.shadowColor = curveCtx.strokeStyle;
+                    curveCtx.shadowBlur = 4;
+
+                    const points = [];
+                    // 固定8000基础均匀采样
+                    const baseSamples = 8000;
+                    for (let s = 0; s <= baseSamples; s++) {
+                        const x = (w - 1) * s / baseSamples;
+                        const th = ixToTheta(x, w);
+                        const I = calcIntensity(th, N, d, ratio, lambda) / sqN;
+                        const py = h - margin - I * (h - 2 * margin);
+                        points.push({ x, py });
+                    }
+                    // 动态计算当前边界内所有k级主峰
+                    const maxKGlobal = Math.floor(d / lambda);
+                    const epsStep = Math.max(0.0001, (sinThetaMax - sinThetaMin) / 8000);
+                    for (let k = -maxKGlobal; k <= maxKGlobal; k++) {
+                        const thPeak = k * lambda / d;
+                        if (thPeak < sinThetaMin || thPeak > sinThetaMax) continue;
+                        const xPeak = thetaToX(thPeak, w);
+                        const IPeak = calcIntensity(thPeak, N, d, ratio, lambda) / sqN;
+                        const pyPeak = h - margin - IPeak * (h - 2 * margin);
+                        points.push({ x: xPeak, py: pyPeak });
+                        // 主峰左右辅助点，避免连线削顶
+                        const thLeft = thPeak - epsStep;
+                        if (thLeft >= sinThetaMin) {
+                            const xLeft = thetaToX(thLeft, w);
+                            const ILeft = calcIntensity(thLeft, N, d, ratio, lambda) / sqN;
+                            const pyLeft = h - margin - ILeft * (h - 2 * margin);
+                            points.push({ x: xLeft, py: pyLeft });
+                        }
+                        const thRight = thPeak + epsStep;
+                        if (thRight <= sinThetaMax) {
+                            const xRight = thetaToX(thRight, w);
+                            const IRight = calcIntensity(thRight, N, d, ratio, lambda) / sqN;
+                            const pyRight = h - margin - IRight * (h - 2 * margin);
+                            points.push({ x: xRight, py: pyRight });
+                        }
+                    }
+                    // 横坐标排序，保证连续曲线
+                    points.sort((a, b) => a.x - b.x);
+                    curveCtx.beginPath();
+                    let first = true;
+                    for (const p of points) {
+                        if (first) { curveCtx.moveTo(p.x, p.py); first = false; }
+                        else curveCtx.lineTo(p.x, p.py);
+                    }
+                    curveCtx.stroke();
+                    curveCtx.shadowBlur = 0;
+                } else if (mode === 'mercury') {
+                    const colors = [
+                        'rgba(100,100,255,0.9)','rgba(150,100,255,0.9)','rgba(80,180,255,0.9)',
+                        'rgba(80,255,120,0.9)','rgba(255,200,80,0.9)','rgba(255,180,80,0.9)'
+                    ];
+                    mercurySpectrumRaw.forEach((line, idx) => {
+                        curveCtx.strokeStyle = colors[idx];
+                        curveCtx.lineWidth = 1.8;
+                        curveCtx.beginPath();
+                        let first = true;
+                        const sampleCnt = 8000;
+                        for (let s=0;s<=sampleCnt;s++){
+                            const x = (w-1)*s/sampleCnt;
+                            const th = ixToTheta(x,w);
+                            const I = calcIntensity(th, N, d, ratio, line.wl) * line.intensity / sqN;
+                            const py = h - margin - I * (h - 2 * margin);
+                            if (first) { curveCtx.moveTo(x, py); first = false; } else curveCtx.lineTo(x, py);
+                        }
+                        curveCtx.stroke();
+                    });
+                }
+            }
+
+            // 第三幅分解干涉：边界拖动实时重算全部主峰，强制等高
+            function drawDecomposeCurve() {
+                if(mode !== 'mono'){
+                    decomposeCard.style.display = 'none';
+                    decomposeCtx.clearRect(0,0,decomposeCanvas.width,decomposeCanvas.height);
+                    return;
+                }
+                decomposeCard.style.display = 'block';
+                const w = decomposeCanvas.width;
+                const h = decomposeCanvas.height;
+                const padX=55,padTop=30,padBot=35;
+                const drawW = w - padX * 2;
+                const drawH = h - padTop - padBot;
+                const baseY = h - padBot;
+                const sqN = N * N;
+
+                decomposeCtx.fillStyle="#0a0a14";
+                decomposeCtx.fillRect(0,0,w,h);
+
+                decomposeCtx.strokeStyle="#8899bb";
+                decomposeCtx.lineWidth=1.5;
+                decomposeCtx.beginPath();
+                decomposeCtx.moveTo(padX,baseY);
+                decomposeCtx.lineTo(padX+drawW,baseY);
+                decomposeCtx.stroke();
+                decomposeCtx.beginPath();
+                decomposeCtx.moveTo(padX,padTop);
+                decomposeCtx.lineTo(padX,baseY);
+                decomposeCtx.stroke();
+
+                decomposeCtx.fillStyle="#8899bb";
+                decomposeCtx.font="12px Consolas";
+                decomposeCtx.fillText(`${sinThetaMin.toFixed(2)}`,padX-40,baseY+16);
+                decomposeCtx.fillText("0",padX+drawW/2-6,baseY+16);
+                decomposeCtx.fillText(`${sinThetaMax.toFixed(2)}`,padX+drawW-30,baseY+16);
+                decomposeCtx.fillText(`I_inter_max=${sqN}`,padX-50,padTop+8);
+
+                decomposeCtx.strokeStyle="rgba(255,255,255,0.08)";
+                decomposeCtx.lineWidth=1;
+                for(let i=1;i<=4;i++){
+                    let y = padTop + (drawH/4)*i;
+                    decomposeCtx.beginPath();
+                    decomposeCtx.moveTo(padX,y);
+                    decomposeCtx.lineTo(padX+drawW,y);
+                    decomposeCtx.stroke();
+                }
+
+                function localXToSinTh(localX){
+                    return sinThetaMin + (sinThetaMax - sinThetaMin) * localX / drawW;
+                }
+                function sinThToLocalX(st){
+                    return (st - sinThetaMin) / (sinThetaMax - sinThetaMin) * drawW;
+                }
+
+                // 多光束干涉蓝虚线核心修复
+                if(chkInter.checked){
+                    decomposeCtx.strokeStyle="#3498db";
+                    decomposeCtx.lineWidth=2;
+                    decomposeCtx.lineJoin='round';
+                    decomposeCtx.lineCap='round';
+                    decomposeCtx.setLineDash([8,5]);
+                    decomposeCtx.beginPath();
+                    let pointList = [];
+                    const baseSample = 2000;
+                    // 基础均匀采样
+                    for(let s=0; s<=baseSample; s++){
+                        const lx = drawW * s / baseSample;
+                        const th = localXToSinTh(lx);
+                        const I = calcInterI(th, N, d, lambda);
+                        const norm = I / sqN;
+                        pointList.push({x: padX+lx, y: baseY - norm*drawH});
+                    }
+                    // 动态获取当前左右边界内全部理论主极大
+                    const maxKGlobal = Math.floor(d / lambda);
+                    for(let k = -maxKGlobal; k <= maxKGlobal; k++){
+                        const stPeak = k * lambda / d;
+                        // 过滤超出当前sinθ边界的级次
+                        if(stPeak < sinThetaMin || stPeak > sinThetaMax) continue;
+                        const lx = sinThToLocalX(stPeak);
+                        const cx = padX + lx;
+                        // 干涉极大归一光强恒等于1，顶点固定画布顶部，永久等高
+                        const cy = baseY - 1 * drawH;
+                        pointList.push({x:cx, y:cy});
+                    }
+                    // 横坐标升序排序，连续连线无断点
+                    pointList.sort((a,b)=>a.x - b.x);
+                    let first = true;
+                    for(let p of pointList){
+                        if(first){ decomposeCtx.moveTo(p.x, p.y); first = false; }
+                        else decomposeCtx.lineTo(p.x, p.y);
+                    }
+                    decomposeCtx.stroke();
+                    decomposeCtx.setLineDash([]);
+
+                    // 绘制主峰圆点标记
+                    decomposeCtx.fillStyle = "#3498db";
+                    const maxK2 = Math.floor(d / lambda);
+                    for(let k = -maxK2; k <= maxK2; k++){
+                        const stPeak = k * lambda / d;
+                        if(stPeak < sinThetaMin || stPeak > sinThetaMax) continue;
+                        const lx = sinThToLocalX(stPeak);
+                        const cx = padX + lx;
+                        const cy = baseY - 1 * drawH;
+                        decomposeCtx.beginPath();
+                        decomposeCtx.arc(cx, cy, 4, 0, Math.PI*2);
+                        decomposeCtx.fill();
+                    }
+                }
+
+                if(chkDiff.checked){
+                    decomposeCtx.strokeStyle="#e74c3c";
+                    decomposeCtx.lineWidth=2;
+                    decomposeCtx.lineJoin='round';
+                    decomposeCtx.lineCap='round';
+                    decomposeCtx.setLineDash([8,5]);
+                    decomposeCtx.beginPath();
+                    let first = true;
+                    const sampleCnt = 1000;
+                    for(let s=0; s<=sampleCnt; s++){
+                        const localX = drawW * s / sampleCnt;
+                        const th = localXToSinTh(localX);
+                        const I_diff = calcDiffI(th, d, ratio, lambda);
+                        const canvasX = padX + localX;
+                        const canvasY = baseY - I_diff * drawH;
+                        if(first) decomposeCtx.moveTo(canvasX, canvasY);
+                        else decomposeCtx.lineTo(canvasX, canvasY);
+                        first = false;
+                    }
+                    decomposeCtx.stroke();
+                    decomposeCtx.setLineDash([]);
+                }
+
+                if(chkTotal.checked){
+                    decomposeCtx.strokeStyle="#9b59b6";
+                    decomposeCtx.lineWidth=3;
+                    decomposeCtx.lineJoin='round';
+                    decomposeCtx.lineCap='round';
+                    decomposeCtx.beginPath();
+                    let first = true;
+                    const sampleCnt = 8000;
+                    for(let s=0; s<=sampleCnt; s++){
+                        const localX = drawW * s / sampleCnt;
+                        const th = localXToSinTh(localX);
+                        const I_total = calcIntensity(th, N, d, ratio, lambda);
+                        const normI = I_total / sqN;
+                        const canvasX = padX + localX;
+                        const canvasY = baseY - normI * drawH;
+                        if(first) decomposeCtx.moveTo(canvasX, canvasY);
+                        else decomposeCtx.lineTo(canvasX, canvasY);
+                        first = false;
+                    }
+                    decomposeCtx.stroke();
+                }
+            }
+
+            function updateInfo() {
+                const a = d / ratio;
+                infoA.textContent = a.toFixed(0) + ' nm';
+                const th1 = lambda / d;
+                infoSinTheta1.textContent = th1.toFixed(3);
+                const maxM = Math.floor(d / lambda);
+                infoOrders.textContent = `±${maxM}`;
+                let miss = '无缺级';
+                if (N !== 1) {
+                    const k = ratio;
+                    if (Math.abs(k - Math.round(k)) < 1e-4) {
+                        const intK = Math.round(k);
+                        const arr = [];
+                        for (let m = intK; m <= maxM; m += intK) arr.push(`±${m}`);
+                        if (arr.length > 0) miss = arr.join(', ');
+                    }
+                }
+                infoMissing.textContent = miss;
+                valN.textContent = N;
+                valD.textContent = d.toFixed(0);
+                valRatio.textContent = ratio.toFixed(2);
+                valLambda.textContent = lambda.toFixed(0);
+                valSinMin.textContent = sinThetaMin.toFixed(2);
+                valSinMax.textContent = sinThetaMax.toFixed(2);
+            }
+
+            function fullRefresh() {
+                updateInfo();
+                requestDraw();
+            }
+
+            // 左右边界滑块绑定刷新（关键：拖动边界实时重算主峰）
+            sliderN.addEventListener('input', () => { N = Number(sliderN.value); fullRefresh(); });
+            sliderD.addEventListener('input', () => { d = Number(sliderD.value); fullRefresh(); });
+            sliderRatio.addEventListener('input', () => { ratio = Number(sliderRatio.value); fullRefresh(); });
+            sliderLambda.addEventListener('input', () => { lambda = Number(sliderLambda.value); fullRefresh(); });
+            sliderSinMin.addEventListener('input', () => { sinThetaMin = Number(sliderSinMin.value); fullRefresh(); });
+            sliderSinMax.addEventListener('input', () => { sinThetaMax = Number(sliderSinMax.value); fullRefresh(); });
+
+            chkInter.addEventListener('change', fullRefresh);
+            chkDiff.addEventListener('change', fullRefresh);
+            chkTotal.addEventListener('change', fullRefresh);
+
+            modeBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modeBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    mode = btn.dataset.mode;
+                    wavelengthGroup.style.opacity = mode === 'mono' ? '1' : '0.5';
+                    sliderLambda.disabled = mode !== 'mono';
+                    buildSpectrumCache();
+                    resizeCanvases();
+                    drawCurve();
+                    drawDecomposeCurve();
+                    fullRefresh();
+                });
+            });
+
+            function stopScan() {
+                scanRunning = false;
+                if (scanTimer) clearInterval(scanTimer);
+                scanTimer = null;
+                sliderN.disabled = false;
+                sliderD.disabled = false;
+                sliderRatio.disabled = false;
+                sliderLambda.disabled = false;
+            }
+            startScanBtn.addEventListener('click', () => {
+                if (scanRunning) return;
+                stopScan();
+                const target = scanTarget.value;
+                const s = Number(scanStart.value);
+                const e = Number(scanEnd.value);
+                const stp = Number(scanStep.value);
+                const delay = Number(scanDelay.value);
+                const rev = scanReverse.checked;
+                currentScanVal = rev ? e : s;
+                stepSign = rev ? -1 : 1;
+                scanRunning = true;
+                if (target === 'N') sliderN.disabled = true;
+                if (target === 'd') sliderD.disabled = true;
+                if (target === 'ratio') sliderRatio.disabled = true;
+                if (target === 'lambda') sliderLambda.disabled = true;
+
+                scanTimer = setInterval(() => {
+                    if (target === 'N') { N = currentScanVal; sliderN.value = N; }
+                    else if (target === 'd') { d = currentScanVal; sliderD.value = d; }
+                    else if (target === 'ratio') { ratio = currentScanVal; sliderRatio.value = ratio; }
+                    else if (target === 'lambda') { lambda = currentScanVal; sliderLambda.value = lambda; }
+                    fullRefresh();
+                    currentScanVal += stp * stepSign;
+                    if ((stepSign === 1 && currentScanVal >= e) || (stepSign === -1 && currentScanVal <= s)) {
+                        fullRefresh();
+                        stopScan();
+                    }
+                }, delay);
+            });
+            stopScanBtn.addEventListener('click', stopScan);
+
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => requestDraw(), 120);
+            });
+
+            buildSpectrumCache();
+            fullRefresh();
+        })();
+    </script>
+</body>
+</html>

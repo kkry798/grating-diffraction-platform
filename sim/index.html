@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光栅衍射分阶模拟虚拟仿真实验平台 · 光分千色 栅览星河</title>
+<style>
+:root{
+    --bg0:#070b1f;
+    --bg1:#0d1233;
+    --bg2:#1b1f4b;
+    --ink:#eef1ff;
+    --ink-dim:#9aa6d6;
+    --violet:#8a5cff;
+    --blue:#4da6ff;
+    --cyan:#2ce8ff;
+    --green:#5cf0b0;
+    --yellow:#ffd75e;
+    --orange:#ff9a4d;
+    --red:#ff5c7a;
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+}
+
+html,body{
+    height:100%;
+}
+
+body{
+    min-height:100vh;
+    color:var(--ink);
+    background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(90,80,200,.30), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 8% 30%, rgba(46,166,255,.14), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 92% 70%, rgba(255,92,122,.10), transparent 60%),
+        linear-gradient(180deg,var(--bg0),var(--bg1) 45%,#05081a);
+    background-attachment:fixed;
+    overflow-x:hidden;
+    padding:46px 20px 40px;
+    position:relative;
+}
+
+/* 星空画布 */
+#stars{
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    z-index:0;
+    pointer-events:none;
+}
+
+/* 星云光斑 */
+.nebula{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(70px);
+    opacity:.5;
+    z-index:0;
+    pointer-events:none;
+    animation:drift 18s ease-in-out infinite alternate;
+}
+.nebula-1{
+    width:420px;height:420px;
+    left:-120px;top:8%;
+    background:radial-gradient(circle, rgba(138,92,255,.55), transparent 70%);
+}
+.nebula-2{
+    width:520px;height:520px;
+    right:-140px;bottom:2%;
+    background:radial-gradient(circle, rgba(44,232,255,.40), transparent 70%);
+    animation-delay:-9s;
+}
+@keyframes drift{
+    from{transform:translate(0,0) scale(1);}
+    to{transform:translate(40px,-30px) scale(1.08);}
+}
+
+.container{
+    max-width:1200px;
+    margin:0 auto;
+    position:relative;
+    z-index:2;
+}
+
+/* ============ 光谱分割线（上下分割线） ============ */
+.spectrum-line{
+    height:3px;
+    border-radius:3px;
+    background:linear-gradient(90deg,
+        var(--violet),var(--blue),var(--cyan),var(--green),
+        var(--yellow),var(--orange),var(--red),var(--violet));
+    background-size:200% 100%;
+    animation:flow 8s linear infinite;
+    box-shadow:0 0 16px rgba(130,130,255,.50);
+    position:relative;
+}
+@keyframes flow{
+    from{background-position:0 0;}
+    to{background-position:200% 0;}
+}
+
+/* ============ 页头 ============ */
+.site-badge{
+    display:inline-block;
+    font-size:12px;
+    letter-spacing:.18em;
+    color:#cdd6ff;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.14);
+    padding:7px 16px;
+    border-radius:999px;
+    backdrop-filter:blur(6px);
+    margin-bottom:22px;
+}
+
+h1{
+    text-align:center;
+    font-size:clamp(24px,4.6vw,40px);
+    font-weight:800;
+    letter-spacing:.02em;
+    line-height:1.35;
+    background:linear-gradient(180deg,#ffffff, #cdd9ff 55%, #8fa8ff);
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+    margin-bottom:12px;
+}
+
+.sub-title{
+    text-align:center;
+    font-size:17px;
+    letter-spacing:.28em;
+    color:#cfe0ff;
+    margin-bottom:6px;
+}
+.sub-title .poem{
+    font-weight:700;
+    background:linear-gradient(90deg,var(--cyan),var(--violet),var(--red));
+    -webkit-background-clip:text;
+    background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.sub-title .en{
+    display:block;
+    font-size:12px;
+    letter-spacing:.34em;
+    color:#7d8ab8;
+    margin-top:6px;
+    text-transform:uppercase;
+}
+
+.tip-info{
+    max-width:640px;
+    margin:26px auto 0;
+    background:rgba(255,255,255,.06);
+    color:#c7d1f0;
+    padding:11px 18px;
+    border-radius:10px;
+    text-align:center;
+    font-size:13.5px;
+    border:1px solid rgba(255,255,255,.10);
+    backdrop-filter:blur(6px);
+}
+.tip-info b{color:#ffd75e;}
+
+/* 头部分割线：标题上、下各一条 */
+.head-line-top{margin-bottom:28px;}
+.head-line-bottom{margin:34px auto 40px;}
+
+/* ============ 三板块卡片 ============ */
+.grid-box{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:30px;
+}
+
+.card{
+    position:relative;
+    background:linear-gradient(180deg, rgba(30,36,72,.92), rgba(18,22,48,.94));
+    border:1px solid rgba(150,160,230,.16);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 18px 40px rgba(0,0,0,.45);
+    transition:transform .35s cubic-bezier(.2,.7,.3,1), box-shadow .35s, border-color .35s;
+    backdrop-filter:blur(8px);
+    display:flex;
+    flex-direction:column;
+}
+
+.card:hover{
+    transform:translateY(-10px);
+    border-color:rgba(150,170,255,.55);
+    box-shadow:0 30px 60px rgba(30,40,120,.55), 0 0 0 1px rgba(140,160,255,.12);
+}
+
+/* 卡片上、下分割线 */
+.card-line-top{border-radius:0 0 3px 3px;}
+.card-line-bottom{
+    border-radius:3px 3px 0 0;
+    margin-top:auto;
+}
+
+.card-body{
+    padding:20px 22px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    flex:1;
+}
+
+.step-badge{
+    align-self:flex-start;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:#e6ecff;
+    padding:5px 12px;
+    border-radius:999px;
+    background:linear-gradient(120deg, rgba(138,92,255,.35), rgba(44,232,255,.28));
+    border:1px solid rgba(160,170,255,.30);
+    margin-bottom:2px;
+}
+
+.img-wrap{
+    border-radius:12px;
+    overflow:hidden;
+    position:relative;
+    border:1px solid rgba(150,160,230,.18);
+}
+.img-wrap::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg, transparent 55%, rgba(8,10,26,.55));
+    pointer-events:none;
+}
+.card-img{
+    width:100%;
+    height:180px;
+    object-fit:cover;
+    display:block;
+    transition:transform .6s cubic-bezier(.2,.7,.3,1);
+}
+.card:hover .card-img{transform:scale(1.08);}
+
+.card-content h3{
+    font-size:21px;
+    font-weight:800;
+    color:#fff;
+    margin-bottom:8px;
+}
+.card-content h3 .cn{display:inline-block;}
+.card-content .en-tag{
+    font-size:12px;
+    color:#8f9cc4;
+    letter-spacing:.06em;
+    margin-left:8px;
+    font-weight:600;
+    text-transform:uppercase;
+}
+
+.card-content p{
+    font-size:14px;
+    color:#b4bfdd;
+    line-height:1.7;
+}
+
+.tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:2px;
+}
+.tags span{
+    font-size:12px;
+    color:#cdd8ff;
+    background:rgba(120,140,255,.10);
+    border:1px solid rgba(140,160,255,.22);
+    padding:4px 10px;
+    border-radius:8px;
+}
+
+.enter{
+    margin-top:14px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:14px;
+    font-weight:700;
+    color:#eaf2ff;
+    background:linear-gradient(120deg,var(--violet),var(--blue));
+    padding:11px 18px;
+    border-radius:10px;
+    text-decoration:none;
+    width:fit-content;
+    transition:transform .25s, box-shadow .25s, filter .25s;
+    box-shadow:0 8px 20px rgba(80,100,255,.35);
+}
+.enter:hover{
+    transform:translateX(4px);
+    filter:brightness(1.1);
+    box-shadow:0 12px 26px rgba(90,110,255,.5);
+}
+.enter .arrow{transition:transform .25s;}
+.enter:hover .arrow{transform:translateX(3px);}
+
+/* ============ 递进公式条 ============ */
+.path{
+    margin:46px auto 0;
+    max-width:760px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:12px;
+    padding:20px 22px;
+    border-radius:16px;
+    background:rgba(255,255,255,.045);
+    border:1px solid rgba(150,160,230,.14);
+    backdrop-filter:blur(6px);
+}
+.path .node{
+    font-size:15px;
+    font-weight:700;
+    color:#e9eeff;
+    padding:9px 16px;
+    border-radius:10px;
+    background:linear-gradient(120deg, rgba(138,92,255,.20), rgba(44,232,255,.16));
+    border:1px solid rgba(160,170,255,.26);
+    white-space:nowrap;
+}
+.path .op{
+    font-size:22px;
+    font-weight:800;
+    color:#ffd75e;
+    text-shadow:0 0 12px rgba(255,215,94,.55);
+}
+.path .hint{
+    flex-basis:100%;
+    text-align:center;
+    font-size:12.5px;
+    letter-spacing:.12em;
+    color:#7d8ab8;
+    margin-top:2px;
+}
+
+footer{
+    margin-top:52px;
+    text-align:center;
+    color:#66739e;
+    font-size:12.5px;
+    letter-spacing:.04em;
+}
+footer .heart{color:var(--red);}
+
+@media (max-width:600px){
+    body{padding:30px 14px 32px;}
+    .site-badge{font-size:11px;letter-spacing:.12em;padding:6px 13px;}
+    h1{letter-spacing:0;line-height:1.45;}
+    h1 .mbr{display:block;}
+    .sub-title{font-size:15px;letter-spacing:.16em;}
+    .sub-title .en{letter-spacing:.22em;}
+    .grid-box{gap:20px;}
+    .card-img{height:160px;}
+    .card-content h3{font-size:19px;}
+    .path{padding:16px 12px;gap:8px;}
+    .path .node{font-size:13px;padding:8px 12px;}
+    .path .op{font-size:18px;}
+    .tip-info{font-size:12.5px;padding:10px 14px;}
+}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+
+<div class="container">
+
+    <!-- 页头上分割线 -->
+    <div class="spectrum-line head-line-top"></div>
+
+    <header>
+        <div style="text-align:center;"><span class="site-badge">✦ 大学物理 · 波动光学 虚拟仿真 ✦</span></div>
+        <h1>光栅衍射分阶模拟<span class="mbr">虚拟仿真实验平台</span></h1>
+        <p class="sub-title">
+            <span class="poem">光分千色 · 栅览星河</span>
+            <span class="en">Diffraction Grating · Stepwise Virtual Simulation</span>
+        </p>
+        <div class="tip-info">
+            ⚠️ 建议点击右上角<b>【在浏览器打开】</b>运行仿真，微信内置浏览器可能出现卡顿
+        </div>
+    </header>
+
+    <!-- 页头下分割线 -->
+    <div class="spectrum-line head-line-bottom"></div>
+
+    <div class="grid-box">
+
+        <!-- 仿真 1 · 单缝衍射 -->
+        <div class="card">
+            <div class="spectrum-line card-line-top"></div>
+            <div class="card-body">
+                <span class="step-badge">第 1 阶 · 基础</span>
+                <div class="img-wrap">
+                    <img class="card-img" src="assets/preview/sim1.jpg" alt="单缝衍射预览">
+                </div>
+                <div class="card-content">
+                    <h3><span class="cn">单缝衍射</span><span class="en-tag">Single-slit</span></h3>
+                    <p>调节缝宽 <b>a</b> 与波长 <b>λ</b>，观察中央明纹宽度与亮度的变化，理解单缝衍射的光强包络。</p>
+                    <div class="tags">
+                        <span>缝宽 a</span><span>波长 λ</span><span>光强包络</span>
+                    </div>
+                </div>
+                <a class="enter" href="./sim1/index.html" target="_blank">进入实验 <span class="arrow">→</span></a>
+            </div>
+            <div class="spectrum-line card-line-bottom"></div>
+        </div>
+
+        <!-- 仿真 2 · 多缝干涉 -->
+        <div class="card">
+            <div class="spectrum-line card-line-top"></div>
+            <div class="card-body">
+                <span class="step-badge">第 2 阶 · 进阶</span>
+                <div class="img-wrap">
+                    <img class="card-img" src="assets/preview/sim2.jpg" alt="多缝干涉预览">
+                </div>
+                <div class="card-content">
+                    <h3><span class="cn">多缝干涉</span><span class="en-tag">Multi-slit</span></h3>
+                    <p>① 矢量合成 + ② 干涉图样两部分联动：调节缝数 <b>N</b> 与相位差 <b>δ</b>，掌握主极大细锐化的物理机制。</p>
+                    <div class="tags">
+                        <span>矢量合成</span><span>干涉图样</span><span>缝数 N</span>
+                    </div>
+                </div>
+                <a class="enter" href="./sim2/index.html" target="_blank">进入实验 <span class="arrow">→</span></a>
+            </div>
+            <div class="spectrum-line card-line-bottom"></div>
+        </div>
+
+        <!-- 仿真 3 · 光栅衍射 -->
+        <div class="card">
+            <div class="spectrum-line card-line-top"></div>
+            <div class="card-body">
+                <span class="step-badge">第 3 阶 · 综合</span>
+                <div class="img-wrap">
+                    <img class="card-img" src="assets/preview/sim3.jpg" alt="光栅衍射预览">
+                </div>
+                <div class="card-content">
+                    <h3><span class="cn">光栅衍射</span><span class="en-tag">Grating</span></h3>
+                    <p>融合单缝包络与多缝干涉，观察缺级现象与光谱分光，构建光栅衍射的完整物理图景。</p>
+                    <div class="tags">
+                        <span>光栅常数 d</span><span>缺级</span><span>光谱分光</span>
+                    </div>
+                </div>
+                <a class="enter" href="./sim3/index.html" target="_blank">进入实验 <span class="arrow">→</span></a>
+            </div>
+            <div class="spectrum-line card-line-bottom"></div>
+        </div>
+
+    </div>
+
+    <!-- 阶梯递进公式 -->
+    <div class="path">
+        <span class="node">单缝衍射</span>
+        <span class="op">＋</span>
+        <span class="node">多缝干涉</span>
+        <span class="op">＝</span>
+        <span class="node">光栅衍射</span>
+        <span class="hint">分层递进 · 从浅层认知到深度探究</span>
+    </div>
+
+    <footer>
+        © 虚拟仿真实训资源平台 · 光栅衍射分阶模拟 <span class="heart">♥</span> 光分千色 栅览星河
+    </footer>
+</div>
+
+<script>
+(function(){
+    const canvas = document.getElementById('stars');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
+    let w = 0, h = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    function resize(){
+        w = canvas.clientWidth = window.innerWidth;
+        h = canvas.clientHeight = window.innerHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(dpr,0,0,dpr,0,0);
+        makeStars();
+    }
+
+    function makeStars(){
+        stars = [];
+        const count = Math.min(220, Math.floor(w * h / 9000));
+        for(let i=0;i<count;i++){
+            stars.push({
+                x:Math.random()*w,
+                y:Math.random()*h,
+                r:Math.random()*1.4 + 0.3,
+                base:Math.random()*0.5 + 0.25,
+                speed:Math.random()*0.02 + 0.004,
+                phase:Math.random()*Math.PI*2
+            });
+        }
+    }
+
+    let t = 0;
+    function draw(){
+        ctx.clearRect(0,0,w,h);
+        t += 0.016;
+        for(let i=0;i<stars.length;i++){
+            const s = stars[i];
+            const a = s.base + Math.sin(t*s.speed + s.phase) * 0.22;
+            const alpha = Math.max(0.05, Math.min(1, a));
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(210,220,255,' + alpha.toFixed(3) + ')';
+            ctx.fill();
+        }
+        requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+})();
+</script>
+</body>
+</html>

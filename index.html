@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光分千色 栅览星河 · 光栅衍射数字化学习平台</title>
+<meta name="description" content="光栅衍射数字化学习平台——微视频、核心知识、虚拟仿真与实验探究">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 背景星空画布 -->
+<canvas id="starfield" aria-hidden="true"></canvas>
+
+<!-- 顶部导航 -->
+<header class="nav" id="top">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark">λ</span>
+      <span class="brand-text">光分千色 · 栅览星河</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="nav-links" id="navLinks">
+      <a href="#video">视频</a>
+      <a href="#knowledge">核心知识</a>
+      <a href="#simulation">虚拟仿真</a>
+      <a href="#flow">学习路径</a>
+      <a href="#measure">实验测量</a>
+      <a href="#spectrometer">拓展实验</a>
+      <a href="#comments">留言</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-grating" aria-hidden="true"></div>
+  <div class="hero-beam" aria-hidden="true">
+    <span class="beam-in"></span>
+    <span class="beam-out b1"></span>
+    <span class="beam-out b2"></span>
+    <span class="beam-out b3"></span>
+    <span class="beam-out b4"></span>
+    <span class="beam-out b5"></span>
+    <span class="beam-out b6"></span>
+  </div>
+  <div class="hero-content">
+    <p class="hero-kicker">大学物理 · 波动光学 · 光栅衍射</p>
+    <h1 class="hero-title">
+      <span class="t1">光分千色</span>
+      <span class="t-sep">·</span>
+      <span class="t2">栅览星河</span>
+    </h1>
+    <p class="hero-subtitle">光栅衍射 · 数字化学习平台</p>
+    <p class="hero-desc">以天宫空间站精密光谱仪为引，将抽象的光栅衍射原理可视化，<br>打通「理论 · 实验 · 前沿应用」的认知闭环。</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#video">▶ 观看教学视频</a>
+      <a class="btn btn-ghost" href="#knowledge">探索核心知识</a>
+    </div>
+  </div>
+  <a class="scroll-hint" href="#video" aria-label="向下滚动">
+    <span class="mouse"><span class="wheel"></span></span>
+  </a>
+</section>
+
+<!-- 视频 -->
+<section class="section" id="video">
+  <div class="section-head reveal">
+    <span class="section-num">01</span>
+    <h2>教学微视频</h2>
+    <p class="section-lead">3 分钟带你读懂光栅衍射</p>
+  </div>
+  <div class="video-wrap reveal">
+    <div class="video-frame">
+      <video id="player" controls preload="metadata" poster="">
+        <source src="assets/video/video.mp4" type="video/mp4">
+        你的浏览器不支持 HTML5 视频播放。
+      </video>
+      <div class="video-badge">时长 02:58 · 原创</div>
+    </div>
+    <div class="video-aside">
+      <div class="meta-chip"><b>知识点</b>光栅衍射</div>
+      <div class="meta-chip"><b>适用对象</b>理工科大学生 · 大学物理</div>
+      <div class="meta-chip"><b>格式</b>MP4 · H.264 高清</div>
+      <p class="video-note">视频采用「动画制作 + 实物实拍」结合方式，从空间站光谱仪切入，分层讲解光栅衍射原理，全程节奏紧凑，适配大学生碎片化自主学习。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 核心知识 -->
+<section class="section section-alt" id="knowledge">
+  <div class="section-head reveal">
+    <span class="section-num">02</span>
+    <h2>核心知识</h2>
+    <p class="section-lead">光栅衍射的物理本质与关键规律</p>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">什么是光栅</h3>
+    <div class="panel">
+      <ul>
+        <li><b>定义：</b>光栅由大量等宽、等间距、相互平行的狭缝（或刻痕）构成，能把白光按波长分开成光谱，是光学分光与精密测量的核心器件。</li>
+        <li><b>分类：</b>透射光栅——光透过狭缝后发生衍射；反射光栅——光在刻痕反射面上衍射。本平台虚拟仿真与自制光谱仪均采用透射光栅。</li>
+        <li><b>核心参数：</b>光栅常数 d = a + b（缝宽 a + 不透光间距 b），常用实验光栅 d 约 10⁻⁴ ~ 10⁻⁶ m。</li>
+        <li><b>历史：</b>1821 年夫琅禾费首创衍射光栅，为现代光谱学奠定了基础。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="equation reveal">
+    <div class="eq-main"><i>d</i>·sin<i>θ</i> = <i>k</i>·<i>λ</i></div>
+    <div class="eq-caption">光栅方程 —— 光栅衍射的核心公式</div>
+    <div class="eq-legend">
+      <span><i>d</i> 光栅常数</span>
+      <span><i>θ</i> 衍射角</span>
+      <span><i>k</i> 衍射级次</span>
+      <span><i>λ</i> 入射光波长</span>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <article class="card reveal">
+      <div class="card-icon icon-blue">⊞</div>
+      <h3>光栅结构</h3>
+      <p>光栅由大量等宽、等间距的平行狭缝构成，核心参数光栅常数 <i>d</i> = <i>a</i> + <i>b</i>（缝宽 <i>a</i> + 不透光间距 <i>b</i>），常用光栅 d 约 10⁻⁴~10⁻⁶ m。</p>
+    </article>
+    <article class="card reveal">
+      <div class="card-icon icon-orange">⇌</div>
+      <h3>物理本质</h3>
+      <p>光栅衍射 = 多缝干涉 × 单缝衍射调制的复合结果：多缝干涉决定主极大（亮纹）的位置，单缝衍射决定各级亮纹的亮度上限。</p>
+    </article>
+    <article class="card reveal">
+      <div class="card-icon icon-cyan">∿</div>
+      <h3>亮纹位置规律</h3>
+      <p>零级亮纹不色散（各波长重合为白色）；同级次波长越长越靠外（紫→红）；小角度下各级等间距；可观测级次受 k ≤ d/λ 限制。</p>
+    </article>
+    <article class="card reveal">
+      <div class="card-icon icon-rainbow">◈</div>
+      <h3>光强分布</h3>
+      <p>主极大光强 I ∝ N²，狭缝数越多亮纹越细锐；单缝衍射因子作为光强包络调制各级亮度，级次越高亮度越低。</p>
+    </article>
+    <article class="card reveal">
+      <div class="card-icon icon-red">∅</div>
+      <h3>缺级现象</h3>
+      <p>当干涉主极大恰好落在单缝衍射暗纹处（d/a 为整数比时）该级消失；例如 d=3a 时 3、6、9… 级缺级，是高频考点。</p>
+    </article>
+    <article class="card reveal">
+      <div class="card-icon icon-green">⌒</div>
+      <h3>色散与应用</h3>
+      <p>除零级外按波长展开形成彩色光谱，是光栅分光镜的核心原理；广泛应用于光谱仪、光栅尺、防伪标识等场景。</p>
+    </article>
+  </div>
+</section>
+
+<!-- 虚拟仿真 -->
+<section class="section" id="simulation">
+  <div class="section-head reveal">
+    <span class="section-num">03</span>
+    <h2>虚拟仿真实验平台</h2>
+    <p class="section-lead">分层递进 · 拖动滑块即可实时观察衍射现象</p>
+  </div>
+  <div class="sim-grid">
+    <a class="sim-card reveal" href="sim/sim1/index.html" target="_blank" rel="noopener" data-title="单缝衍射">
+      <div class="sim-thumb">
+        <img src="sim/assets/preview/sim1.jpg" alt="单缝衍射仿真" loading="lazy">
+        <span class="sim-live">交互 · 实时</span>
+      </div>
+      <div class="sim-body">
+        <span class="sim-step">第 1 阶 · 基础</span>
+        <h3>单缝衍射</h3>
+        <p>调节缝宽 a 与波长 λ，观察中央明纹宽度与光强包络的变化。</p>
+        <span class="sim-enter">进入实验 <i>→</i></span>
+      </div>
+    </a>
+    <a class="sim-card reveal" href="sim/sim2/index.html" target="_blank" rel="noopener" data-title="多缝干涉">
+      <div class="sim-thumb">
+        <img src="sim/assets/preview/sim2.jpg" alt="多缝干涉仿真" loading="lazy">
+        <span class="sim-live">交互 · 实时</span>
+      </div>
+      <div class="sim-body">
+        <span class="sim-step">第 2 阶 · 进阶</span>
+        <h3>多缝干涉</h3>
+        <p>矢量合成 + 干涉图样，理解主极大细锐化的物理机制。</p>
+        <span class="sim-enter">进入实验 <i>→</i></span>
+      </div>
+    </a>
+    <a class="sim-card reveal" href="sim/sim3/index.html" target="_blank" rel="noopener" data-title="光栅衍射">
+      <div class="sim-thumb">
+        <img src="sim/assets/preview/sim3.jpg" alt="光栅衍射仿真" loading="lazy">
+        <span class="sim-live">交互 · 实时</span>
+      </div>
+      <div class="sim-body">
+        <span class="sim-step">第 3 阶 · 综合</span>
+        <h3>光栅衍射</h3>
+        <p>融合单缝包络与多缝干涉，观察缺级与光谱分光现象。</p>
+        <span class="sim-enter">进入实验 <i>→</i></span>
+      </div>
+    </a>
+  </div>
+  <div class="sim-all reveal">
+    <a class="btn btn-ghost" href="sim/index.html" target="_blank" rel="noopener">进入完整仿真平台 ↗</a>
+  </div>
+</section>
+
+<!-- 学习路径 -->
+<section class="section section-alt" id="flow">
+  <div class="section-head reveal">
+    <span class="section-num">04</span>
+    <h2>学习路径</h2>
+    <p class="section-lead">前沿导入 → 分层精讲 → 实操验证 → 科技升华</p>
+  </div>
+  <div class="flow">
+    <div class="flow-step reveal">
+      <div class="flow-dot"><span>Ⅰ</span></div>
+      <div class="flow-time">00:00 – 00:27</div>
+      <h3>前沿导入</h3>
+      <p>以天宫空间站光谱仪切入，追溯夫琅禾费创制衍射光栅的历史。</p>
+    </div>
+    <div class="flow-step reveal">
+      <div class="flow-dot"><span>Ⅱ</span></div>
+      <div class="flow-time">00:28 – 02:31</div>
+      <h3>分层精讲</h3>
+      <p>多缝干涉 → 单缝衍射 → 缺级与分光，逐层拆解核心机制。</p>
+    </div>
+    <div class="flow-step reveal">
+      <div class="flow-dot"><span>Ⅲ</span></div>
+      <div class="flow-time">02:32 – 02:48</div>
+      <h3>实操验证</h3>
+      <p>自制简易光栅光谱仪，实测汞原子特征谱线，学以致用。</p>
+    </div>
+    <div class="flow-step reveal">
+      <div class="flow-dot"><span>Ⅳ</span></div>
+      <div class="flow-time">02:49 – 02:59</div>
+      <h3>科技升华</h3>
+      <p>回归空间站，总结光栅分光在深空探测中的核心价值。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 实验测量与分析 -->
+<section class="section" id="measure">
+  <div class="section-head reveal">
+    <span class="section-num">05</span>
+    <h2>实验测量与分析</h2>
+    <p class="section-lead">分光计测量光栅常数与光波波长 · 不确定度评定</p>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">实验仪器</h3>
+    <div class="card-grid">
+      <article class="card">
+        <div class="card-icon icon-blue">◎</div>
+        <h3>分光计</h3>
+        <p>测量衍射角的精密光学仪器，需完成望远镜、平行光管、载物台「三垂直」共轴调节。</p>
+      </article>
+      <article class="card">
+        <div class="card-icon icon-orange">≋</div>
+        <h3>透射光栅</h3>
+        <p>核心衍射元件，光栅常数待测，刻线需与分光计转轴平行。</p>
+      </article>
+      <article class="card">
+        <div class="card-icon icon-red">☀</div>
+        <h3>汞灯</h3>
+        <p>线状光源，紫光 435.8 nm、绿光 546.1 nm 特征谱线用于测量与验证。</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">实验步骤</h3>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-dot"><span>Ⅰ</span></div>
+        <h3>分光计调节</h3>
+        <p>调节望远镜聚焦无穷远、光轴垂直转轴，平行光管出射平行光且共轴。</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-dot"><span>Ⅱ</span></div>
+        <h3>光栅调节</h3>
+        <p>使光栅平面垂直入射光、刻线与转轴平行，保证谱线左右对称、等高。</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-dot"><span>Ⅲ</span></div>
+        <h3>衍射角测量</h3>
+        <p>记录中央明纹位置，测量 ±1 级紫光、绿光谱线，双游标读数、重复 3 次。</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-dot"><span>Ⅳ</span></div>
+        <h3>数据处理</h3>
+        <p>由光栅方程求光栅常数 d 与绿光波长 λ，计算相对误差并评定不确定度。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">测量原理</h3>
+    <div class="equation">
+      <div class="eq-main"><i>d</i>·sin<i>θ</i> = <i>k</i>·<i>λ</i></div>
+      <div class="eq-caption">紫光测光栅常数 d → 代入求绿光波长 λ</div>
+      <div class="eq-legend">
+        <span>用已知波长紫光测 d</span>
+        <span>再测绿光谱线求 λ</span>
+        <span>相对误差验证</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">不确定度评定</h3>
+    <div class="panel">
+      <ul>
+        <li><b>A 类评定（统计法）：</b>对衍射角重复测量 3 次，由实验标准差得到平均值的 A 类标准不确定度。</li>
+        <li><b>B 类评定（非统计法）：</b>按分光计最大允差，角度服从矩形分布，取包含因子 √3。</li>
+        <li><b>合成标准不确定度：</b>由灵敏系数将两类不确定度合成，得到光栅常数 d 的合成标准不确定度。</li>
+        <li><b>扩展不确定度：</b>取置信概率 95%，查 t 分布表得包含因子，给出最终测量结果。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">误差分析</h3>
+    <div class="duo-grid">
+      <article class="card">
+        <div class="card-icon icon-red">⚠</div>
+        <h3>系统误差</h3>
+        <p>光栅平面未严格垂直入射光、刻线与转轴不平行、分光计未共轴、刻度盘偏心、谱线展宽。可通过自准直法精细调节、双游标取平均、汞灯预热等方法减小。</p>
+      </article>
+      <article class="card">
+        <div class="card-icon icon-blue">∿</div>
+        <h3>偶然误差</h3>
+        <p>人眼判断谱线对齐的视差、游标估读误差、仪器轻微晃动、环境振动与杂散光。可通过消除视差、多次测量取平均、减震遮光等方法减小。</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- 拓展实验 · 自制光谱仪 -->
+<section class="section section-alt" id="spectrometer">
+  <div class="section-head reveal">
+    <span class="section-num">06</span>
+    <h2>拓展实验 · 自制光谱仪</h2>
+    <p class="section-lead">DVD-R 透射光栅 + 摄像头 · 搭建低成本光谱分析系统</p>
+  </div>
+
+  <div class="result-panel reveal">
+    <div class="result-text">
+      <h3>基于 DVD-R 的自制光谱仪</h3>
+      <p>利用 DVD-R 光盘透明数据层作为衍射元件，结合 3D 打印暗箱、USB 摄像头与 Theremino Spectrometer 软件，搭建低成本光谱分析系统。DVD-R 数据层具有规则排列的微米级刻纹，刻纹间距与可见光波长同数量级，可作为<b>透射光栅</b>对白光分光。</p>
+      <ul>
+        <li>荧光灯波长校准：436 nm 与 546 nm 双谱线定标</li>
+        <li>汞灯谱线验证：相对误差 <b>0.16% ~ 0.50%</b></li>
+        <li>太阳光连续光谱：完整呈现 400–700 nm 可见光分光</li>
+      </ul>
+    </div>
+    <div class="spectrum" aria-hidden="true">
+      <div class="spec-band"></div>
+      <div class="spec-labels">
+        <span>紫</span><span>蓝</span><span>青</span><span>绿</span><span>黄</span><span>橙</span><span>红</span>
+      </div>
+      <div class="spec-caption">可见光连续光谱 · 光栅色散</div>
+    </div>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">实验流程</h3>
+    <div class="card-grid">
+      <article class="card">
+        <div class="card-icon icon-green">①</div>
+        <h3>光谱校准</h3>
+        <p>以荧光灯为校准光源，选取 436 nm、546 nm 两条特征谱线，软件自动拟合像素坐标与波长，完成全波段标定。</p>
+      </article>
+      <article class="card">
+        <div class="card-icon icon-cyan">②</div>
+        <h3>谱线验证</h3>
+        <p>更换低压汞灯重新采集，对照标准谱线评价测量精度，除黄色双线外各谱线均被正确识别。</p>
+      </article>
+      <article class="card">
+        <div class="card-icon icon-rainbow">③</div>
+        <h3>连续光谱</h3>
+        <p>以自然太阳光采集连续衍射光谱，覆盖 400~700 nm 全可见光区，直观展示光栅对白光的连续分光。</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="measure-block reveal">
+    <h3 class="block-title">汞灯谱线验证结果</h3>
+    <table class="data-table">
+      <thead>
+        <tr><th>软件测量值 (nm)</th><th>标准波长 (nm)</th><th>相对误差 (%)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>406</td><td>404.7</td><td class="td-b">0.32</td></tr>
+        <tr><td>438</td><td>435.8</td><td class="td-b">0.50</td></tr>
+        <tr><td>547</td><td>546.1</td><td class="td-b">0.16</td></tr>
+      </tbody>
+    </table>
+    <p class="table-note">除黄色双谱线因间距较小表现为单峰外，其余主要谱线均被正确识别，测量精度满足可见光光谱分析及教学演示需求。</p>
+  </div>
+</section>
+
+<!-- 学习交流 · 评论区 -->
+<section class="section" id="comments">
+  <div class="section-head reveal">
+    <span class="section-num">07</span>
+    <h2>学习交流</h2>
+    <p class="section-lead">有问题？在这里留言讨论</p>
+  </div>
+  <div class="comment-wrap reveal">
+    <div class="comment-form">
+      <input type="text" id="commentName" placeholder="昵称（选填）" maxlength="20" autocomplete="off">
+      <textarea id="commentText" placeholder="写下你的问题或想法…" rows="3" maxlength="500"></textarea>
+      <button class="btn btn-primary" id="commentSubmit" type="button">发表留言</button>
+    </div>
+    <div class="comment-list" id="commentList"></div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-title">光分千色 · 栅览星河</div>
+  <p>光栅衍射 · 数字化学习平台</p>
+  <div class="footer-stats">累计访问 <b id="visitCount">--</b> 次</div>
+  <p class="footer-sub">让每一束光，都抵达星辰</p>
+</footer>
+
+<!-- 仿真弹窗 -->
+<div class="sim-modal" id="simModal" aria-hidden="true">
+  <div class="sim-modal-backdrop" data-close></div>
+  <div class="sim-modal-panel">
+    <div class="sim-modal-bar">
+      <span class="sim-modal-title" id="simModalTitle">虚拟仿真</span>
+      <div class="sim-modal-actions">
+        <a class="sim-modal-open" id="simModalOpen" href="#" target="_blank" rel="noopener">↗ 新窗口打开</a>
+        <button class="sim-modal-close" data-close aria-label="关闭">✕</button>
+      </div>
+    </div>
+    <iframe class="sim-modal-frame" id="simModalFrame" title="虚拟仿真实验" loading="lazy"></iframe>
+  </div>
+</div>
+
+<!-- 在线人数徽标 -->
+<div class="online-badge" id="onlineBadge" title="当前在线人数">
+  <span class="online-dot"></span>
+  <span>在线 <b id="onlineNum">--</b> 人</span>
+</div>
+
+<script src="js/main.js"></script>
+</body>
+</html>

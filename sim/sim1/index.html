@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单缝衍射 - 单色光模拟（无红线标记）</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel-bg: #16213e;
+            --text: #e0e0e0;
+            --accent: #4da6ff;
+            --slider-track: #2a3a5c;
+            --border: #2a3a5c;
+            --card: #1e2d4a;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 16px;
+            color: var(--text);
+            background-image: radial-gradient(ellipse at 50% 0%, rgba(77, 166, 255, 0.06) 0%, transparent 60%);
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .main-display {
+            flex: 1 1 680px;
+            min-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .canvas-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .canvas-card .card-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #8899bb;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            border-radius: 6px;
+            background: #000;
+            cursor: crosshair;
+        }
+
+        #patternCanvas { height: 300px; }
+        #curveCanvas { height: 170px; }
+
+        .control-panel {
+            flex: 0 0 300px;
+            min-width: 280px;
+            background: var(--panel-bg);
+            border-radius: var(--radius);
+            padding: 20px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: 16px;
+        }
+
+        .control-panel h2 {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #7fc4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .separator { height: 1px; background: var(--border); margin: 2px 0; }
+
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #c8d6e5;
+        }
+        .control-group label .val {
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 60px;
+            text-align: right;
+            font-family: Consolas, monospace;
+        }
+        .unit { font-size: 0.7rem; color: #8899bb; margin-left: 2px; }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 7px;
+            border-radius: 4px;
+            background: var(--slider-track);
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 12px rgba(77, 166, 255, 0.4);
+            cursor: pointer;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #8899bb;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            height: 26px;
+            align-items: center;
+        }
+        .info-val {
+            color: #c8d6e5;
+            font-weight: 600;
+            font-family: Consolas, monospace;
+            white-space: nowrap;
+            min-width: 90px;
+            text-align: right;
+        }
+
+        @media (max-width: 820px) {
+            .container { flex-direction: column; }
+            .main-display { min-width: 0; }
+            .control-panel { position: static; min-width: 0; }
+            #patternCanvas { height: 220px; }
+            #curveCanvas { height: 140px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-display">
+            <div class="canvas-card">
+                <div class="card-label">🔬 单缝衍射光屏条纹</div>
+                <canvas id="patternCanvas"></canvas>
+            </div>
+            <div class="canvas-card">
+                <div class="card-label">📈 强度分布曲线 | 横轴: sinθ | 纵轴: I/I₀</div>
+                <canvas id="curveCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <h2>单缝衍射模拟</h2>
+            <div class="separator"></div>
+
+            <div class="control-group">
+                <label>缝宽 a <span><span class="val" id="valA">1200</span><span class="unit">nm</span></span></label>
+                <input type="range" id="sliderA" min="100" max="3000" value="1200" step="10">
+            </div>
+            <div class="control-group">
+                <label>波长 λ <span><span class="val" id="valLambda">550</span><span class="unit">nm</span></span></label>
+                <input type="range" id="sliderLambda" min="380" max="780" value="550" step="1">
+            </div>
+            <div class="control-group">
+                <label>左边界 sinθ(min) <span class="val" id="valSinMin">-0.90</span></label>
+                <input type="range" id="sliderSinMin" min="-1.0" max="1.0" value="-0.90" step="0.01">
+            </div>
+            <div class="control-group">
+                <label>右边界 sinθ(max) <span class="val" id="valSinMax">0.90</span></label>
+                <input type="range" id="sliderSinMax" min="-1.0" max="1.0" value="0.90" step="0.01">
+            </div>
+
+            <div class="separator"></div>
+            <div class="info-row">
+                <span>一级暗纹 sinθ(k=1)</span>
+                <span class="info-val" id="infoDark1">0.458</span>
+            </div>
+            <div class="info-row">
+                <span>最大可见级次 k_max</span>
+                <span class="info-val" id="infoKmax">1</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const patternCanvas = document.getElementById('patternCanvas');
+            const patternCtx = patternCanvas.getContext('2d');
+            const curveCanvas = document.getElementById('curveCanvas');
+            const curveCtx = curveCanvas.getContext('2d');
+
+            const sliderA = document.getElementById('sliderA');
+            const sliderLambda = document.getElementById('sliderLambda');
+            const sliderSinMin = document.getElementById('sliderSinMin');
+            const sliderSinMax = document.getElementById('sliderSinMax');
+
+            const valA = document.getElementById('valA');
+            const valLambda = document.getElementById('valLambda');
+            const valSinMin = document.getElementById('valSinMin');
+            const valSinMax = document.getElementById('valSinMax');
+            const infoDark1 = document.getElementById('infoDark1');
+            const infoKmax = document.getElementById('infoKmax');
+
+            let a = Number(sliderA.value);
+            let lambda = Number(sliderLambda.value);
+            let sinThetaMin = Number(sliderSinMin.value);
+            let sinThetaMax = Number(sliderSinMax.value);
+
+            let renderPending = false;
+            let resizeTimer = null;
+
+            function wavelengthToRGB(wl) {
+                let r = 0, g = 0, b = 0;
+                if (wl >= 380 && wl < 440) { r = -(wl - 440) / 60; b = 1; }
+                else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50; b = 1; }
+                else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
+                else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
+                else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
+                else if (wl >= 645 && wl <= 780) { r = 1; }
+                let factor = 1;
+                if (wl < 420) factor = 0.3 + 0.7 * (wl - 380) / 40;
+                if (wl > 700) factor = 0.3 + 0.7 * (780 - wl) / 80;
+                return { r: Math.max(0, Math.min(1, r * factor)), g: Math.max(0, Math.min(1, g * factor)), b: Math.max(0, Math.min(1, b * factor)) };
+            }
+
+            function sinc(x) {
+                return Math.abs(x) < 1e-9 ? 1 : Math.sin(x) / x;
+            }
+
+            function singleSlitIntensity(sinTh) {
+                const beta = Math.PI * a * sinTh / lambda;
+                const s = sinc(beta);
+                return s * s;
+            }
+
+            function resizeCanvases() {
+                const pw = patternCanvas.clientWidth;
+                const ph = patternCanvas.clientHeight;
+                const cw = curveCanvas.clientWidth;
+                const ch = curveCanvas.clientHeight;
+                let change = false;
+                if (patternCanvas.width !== pw || patternCanvas.height !== ph) {
+                    patternCanvas.width = pw; patternCanvas.height = ph; change = true;
+                }
+                if (curveCanvas.width !== cw || curveCanvas.height !== ch) {
+                    curveCanvas.width = cw; curveCanvas.height = ch; change = true;
+                }
+                return change;
+            }
+
+            function ixToTheta(ix, w) {
+                return sinThetaMin + (sinThetaMax - sinThetaMin) * ix / (w - 1);
+            }
+
+            function thetaToX(th, w) {
+                return (th - sinThetaMin) / (sinThetaMax - sinThetaMin) * (w - 1);
+            }
+
+            function requestDraw() {
+                if (renderPending) return;
+                renderPending = true;
+                requestAnimationFrame(() => { drawAll(); renderPending = false; });
+            }
+
+            function drawAll() {
+                resizeCanvases();
+                drawPattern();
+                drawCurve();
+            }
+
+            function drawPattern() {
+                const w = patternCanvas.width;
+                const h = patternCanvas.height;
+                const imgData = patternCtx.createImageData(w, h);
+                const rgb = wavelengthToRGB(lambda);
+
+                for (let x = 0; x < w; x++) {
+                    const th = ixToTheta(x, w);
+                    const I = singleSlitIntensity(th);
+                    const bright = Math.pow(Math.min(1, I), 0.42);
+                    const r = Math.round(rgb.r * bright * 255);
+                    const g = Math.round(rgb.g * bright * 255);
+                    const b = Math.round(rgb.b * bright * 255);
+                    const off = x * 4;
+                    for (let y = 0; y < h; y++) {
+                        const idx = y * w * 4 + off;
+                        imgData.data[idx] = r;
+                        imgData.data[idx + 1] = g;
+                        imgData.data[idx + 2] = b;
+                        imgData.data[idx + 3] = 255;
+                    }
+                }
+                patternCtx.putImageData(imgData, 0, 0);
+
+                const midX = thetaToX(0, w);
+                patternCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+                patternCtx.lineWidth = 1;
+                patternCtx.setLineDash([4, 6]);
+                patternCtx.beginPath();
+                patternCtx.moveTo(midX, 0);
+                patternCtx.lineTo(midX, h);
+                patternCtx.stroke();
+                patternCtx.setLineDash([]);
+
+                patternCtx.fillStyle = 'rgba(255,255,255,0.8)';
+                patternCtx.font = '11px system-ui';
+                patternCtx.textAlign = 'center';
+                patternCtx.fillText('中央明纹', midX, h - 8);
+
+                patternCtx.fillStyle = 'rgba(255,255,255,0.5)';
+                patternCtx.font = '9px system-ui';
+                for (let i = 0; i <= 5; i++) {
+                    const th = sinThetaMin + (sinThetaMax - sinThetaMin) * i / 5;
+                    const px = thetaToX(th, w);
+                    if (px > 10 && px < w - 10) patternCtx.fillText('sinθ=' + th.toFixed(2), px, h - 22);
+                }
+            }
+
+            function drawCurve() {
+                const w = curveCanvas.width;
+                const h = curveCanvas.height;
+                const margin = 30;
+                curveCtx.fillStyle = '#0a0a14';
+                curveCtx.fillRect(0, 0, w, h);
+
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+                curveCtx.lineWidth = 1;
+                const gx = w / 10, gy = (h - 2 * margin) / 5;
+                for (let i = 0; i <= 10; i++) { curveCtx.beginPath(); curveCtx.moveTo(i * gx, 0); curveCtx.lineTo(i * gx, h); curveCtx.stroke(); }
+                for (let i = 0; i <= 5; i++) {
+                    const y = h - margin - i * gy;
+                    curveCtx.beginPath(); curveCtx.moveTo(0, y); curveCtx.lineTo(w, y); curveCtx.stroke();
+                    curveCtx.fillStyle = 'rgba(255,255,255,0.45)';
+                    curveCtx.font = '8px system-ui';
+                    curveCtx.textAlign = 'right';
+                    curveCtx.fillText((i / 5).toFixed(1), 18, y + 3);
+                }
+
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+                curveCtx.beginPath(); curveCtx.moveTo(0, h - margin); curveCtx.lineTo(w, h - margin); curveCtx.stroke();
+
+                const midX = thetaToX(0, w);
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                curveCtx.setLineDash([3, 5]);
+                curveCtx.beginPath(); curveCtx.moveTo(midX, 0); curveCtx.lineTo(midX, h); curveCtx.stroke();
+                curveCtx.setLineDash([]);
+
+                const rgb = wavelengthToRGB(lambda);
+                curveCtx.strokeStyle = `rgb(${Math.round(rgb.r * 255)},${Math.round(rgb.g * 255)},${Math.round(rgb.b * 255)})`;
+                curveCtx.lineWidth = 2;
+                curveCtx.shadowColor = curveCtx.strokeStyle;
+                curveCtx.shadowBlur = 4;
+                curveCtx.beginPath();
+                let first = true;
+                for (let x = 0; x < w; x++) {
+                    const th = ixToTheta(x, w);
+                    const I = singleSlitIntensity(th);
+                    const py = h - margin - I * (h - 2 * margin);
+                    if (first) { curveCtx.moveTo(x, py); first = false; }
+                    else curveCtx.lineTo(x, py);
+                }
+                curveCtx.stroke();
+                curveCtx.shadowBlur = 0;
+
+                curveCtx.fillStyle = 'rgba(255,255,255,0.5)';
+                curveCtx.font = '8px system-ui';
+                curveCtx.textAlign = 'center';
+                for (let i = 0; i <= 5; i++) {
+                    const th = sinThetaMin + (sinThetaMax - sinThetaMin) * i / 5;
+                    const px = thetaToX(th, w);
+                    if (px > 5 && px < w - 5) curveCtx.fillText(th.toFixed(2), px, h - 6);
+                }
+                curveCtx.textAlign = 'start';
+            }
+
+            function updateInfo() {
+                valA.textContent = a.toFixed(0);
+                valLambda.textContent = lambda.toFixed(0);
+                valSinMin.textContent = sinThetaMin.toFixed(2);
+                valSinMax.textContent = sinThetaMax.toFixed(2);
+                const dark1 = lambda / a;
+                infoDark1.textContent = dark1.toFixed(3);
+                const maxSin = Math.max(Math.abs(sinThetaMin), Math.abs(sinThetaMax));
+                const kMax = Math.floor(maxSin * a / lambda);
+                infoKmax.textContent = kMax;
+            }
+
+            function clampSinRange() {
+                let minV = Number(sliderSinMin.value);
+                let maxV = Number(sliderSinMax.value);
+                if (minV >= maxV) {
+                    if (event.target.id === 'sliderSinMin') {
+                        sliderSinMin.value = maxV - 0.02;
+                    } else {
+                        sliderSinMax.value = minV + 0.02;
+                    }
+                }
+                sinThetaMin = Number(sliderSinMin.value);
+                sinThetaMax = Number(sliderSinMax.value);
+            }
+
+            function fullRefresh(e) {
+                if (e && (e.target.id === 'sliderSinMin' || e.target.id === 'sliderSinMax')) {
+                    clampSinRange();
+                }
+                updateInfo();
+                requestDraw();
+            }
+
+            sliderA.addEventListener('input', (e) => { a = Number(sliderA.value); fullRefresh(e); });
+            sliderLambda.addEventListener('input', (e) => { lambda = Number(sliderLambda.value); fullRefresh(e); });
+            sliderSinMin.addEventListener('input', (e) => { fullRefresh(e); });
+            sliderSinMax.addEventListener('input', (e) => { fullRefresh(e); });
+
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => requestDraw(), 120);
+            });
+
+            fullRefresh();
+        })();
+    </script>
+</body>
+</html>

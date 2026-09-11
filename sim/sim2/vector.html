@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多光束干涉可视化演示 - 矢量合成</title>
+    <style>
+        :root {
+            --bg: #0d1233;
+            --panel-bg: #16213e;
+            --text: #e6ecff;
+            --text-dim: #b4bfdd;
+            --accent: #4da6ff;
+            --cyan: #2ce8ff;
+            --border: #2a3a5c;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Microsoft Yahei", sans-serif;
+            padding: 16px;
+            max-width: 740px;
+            margin: 0 auto;
+            min-height: 100vh;
+            color: var(--text);
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(90,80,200,.30), transparent 60%),
+                linear-gradient(180deg, #070b1f, var(--bg) 45%, #05081a);
+            background-attachment: fixed;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 14px;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .control-panel {
+            border: 1px solid var(--border);
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            background: var(--panel-bg);
+            box-shadow: 0 4px 24px rgba(0,0,0,.4);
+        }
+        .row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .row:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 600;
+        }
+        label span {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 16px;
+            font-family: Consolas, monospace;
+        }
+        canvas {
+            background: #fff;
+            width: 100%;
+            max-width: 700px;
+            display: block;
+            border-radius: 8px;
+        }
+        #vecCanvas { height: 300px; }
+        #curveCanvas { height: 300px; }
+        .canvas-wrap {
+            margin-bottom: 20px;
+        }
+        h4 {
+            margin: 0 0 8px 0;
+            font-weight: 600;
+            font-size: 16px;
+            color: #fff;
+        }
+        .info {
+            margin-top: 6px;
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        input[type="range"] {
+            width: 140px;
+            margin: 0 8px;
+            vertical-align: middle;
+            accent-color: var(--accent);
+        }
+        input[type="radio"] {
+            accent-color: var(--accent);
+        }
+        button {
+            padding: 6px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 6px;
+            color: #eaf2ff;
+            background: rgba(77,166,255,.15);
+            border: 1px solid rgba(77,166,255,.4);
+            border-radius: 8px;
+            transition: all .2s;
+        }
+        button:hover { background: rgba(77,166,255,.28); border-color: var(--accent); }
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .control-panel { padding: 14px 12px; }
+            input[type="range"] { width: 110px; margin: 0 4px; }
+            button { padding: 8px 14px; font-size: 15px; margin-right: 4px; }
+            #vecCanvas { height: 240px; }
+            #curveCanvas { height: 240px; }
+            h4 { font-size: 15px; }
+            .info { font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+    <a class="back-link" href="./index.html">← 返回两部分选择</a>
+    <div class="control-panel">
+        <div class="row">
+            <label>光束数 N：
+                <input type="range" id="nSlider" min="2" max="20" value="5">
+                <span id="nVal">5</span>
+            </label>
+            <label>单光束振幅 A₀：
+                <input type="range" id="aSlider" min="20" max="100" value="60">
+                <span id="aVal">60</span>
+            </label>
+            <label>动画速度：
+                <input type="range" id="speedSlider" min="0.2" max="3" step="0.2" value="1">
+                <span id="speedVal">1</span>
+            </label>
+        </div>
+        <div class="row">
+            <label>动画显示模式：
+                <input type="radio" name="mode" value="both" checked>同时显示振幅+光强
+                <input type="radio" name="mode" value="amp">仅振幅曲线
+                <input type="radio" name="mode" value="int">仅光强曲线
+            </label>
+        </div>
+        <div class="row">
+            <button id="startBtn">启动动画</button>
+            <button id="pauseBtn">暂停动画</button>
+            <button id="clearBtn">清空画布</button>
+        </div>
+    </div>
+    <div class="canvas-wrap">
+        <h4>矢量叠加示意图（相位同步动态更新）</h4>
+        <canvas id="vecCanvas" width="700" height="300"></canvas>
+    </div>
+    <div class="canvas-wrap">
+        <h4>相位差-归一化振幅/光强曲线</h4>
+        <canvas id="curveCanvas" width="700" height="300"></canvas>
+        <div class="info">
+            X轴相位差 δ 量程：0 ~ 4π；坐标轴交于原点，曲线从左向右逐步展开
+        </div>
+    </div>
+    <script>
+        const vecCanvas = document.getElementById('vecCanvas');
+        const curveCanvas = document.getElementById('curveCanvas');
+        const dpr = window.devicePixelRatio || 1;
+
+        let vecW = 700;
+        let vecH = 300;
+        let curveW = 700;
+        let curveH = 300;
+
+        const vecCtx = vecCanvas.getContext('2d');
+        vecCtx.textAlign = 'left';
+        vecCtx.textBaseline = 'alphabetic';
+
+        const curveCtx = curveCanvas.getContext('2d');
+        curveCtx.textAlign = 'left';
+        curveCtx.textBaseline = 'middle';
+        curveCtx.fontRendering = "geometricPrecision";
+
+        function resizeCanvases() {
+            vecW = vecCanvas.clientWidth || 700;
+            vecH = vecCanvas.clientHeight || 300;
+            curveW = curveCanvas.clientWidth || 700;
+            curveH = curveCanvas.clientHeight || 300;
+
+            vecCanvas.width = Math.round(vecW * dpr);
+            vecCanvas.height = Math.round(vecH * dpr);
+            vecCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+            curveCanvas.width = Math.round(curveW * dpr);
+            curveCanvas.height = Math.round(curveH * dpr);
+            curveCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        const nSlider = document.getElementById('nSlider');
+        const nVal = document.getElementById('nVal');
+        const aSlider = document.getElementById('aSlider');
+        const aVal = document.getElementById('aVal');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedVal = document.getElementById('speedVal');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+
+        let N = 5;
+        let A0 = 60;
+        let speed = 1;
+        let timer = null;
+        let drawMode = 'both';
+        let spreadRange = 0;
+        const PI = Math.PI;
+        const minRad = 0 * PI;
+        const maxRad = 4 * PI;
+        const radRange = maxRad - minRad;
+
+        modeRadios.forEach(radio => {
+            radio.onchange = () => {
+                drawMode = radio.value;
+                redrawCurve();
+            }
+        })
+        nSlider.oninput = () => {
+            N = Number(nSlider.value);
+            nVal.textContent = N;
+            resetCurve();
+        }
+        aSlider.oninput = () => {
+            A0 = Number(aSlider.value);
+            aVal.textContent = A0;
+            resetCurve();
+        }
+        speedSlider.oninput = () => {
+            speed = Number(speedSlider.value);
+            speedVal.textContent = speed;
+        }
+        startBtn.onclick = () => {
+            if (timer) clearInterval(timer);
+            timer = setInterval(loopFrame, 30);
+        }
+        pauseBtn.onclick = () => {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+        clearBtn.onclick = () => {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            spreadRange = 0;
+            redrawAll();
+        }
+
+        function deg2rad(deg) {
+            return deg * PI / 180;
+        }
+        function rad2deg(rad) {
+            return rad * 180 / PI;
+        }
+
+        // 物理极值插值（完全保留正负号）
+        function calcA(dRad) {
+            const halfRad = dRad / 2;
+            const sinHalf = Math.sin(halfRad);
+
+            if (Math.abs(sinHalf) < 1e-4) {
+                const k = Math.round(dRad / (2 * PI));
+                return A0 * N * Math.cos(k * (N - 1) * PI);
+            }
+
+            return A0 * Math.sin(N * halfRad) / sinHalf;
+        }
+
+        function normA(A) {
+            const Amax = N * A0;
+            return A / Amax;
+        }
+        function calcI(normAmp) {
+            return normAmp * normAmp;
+        }
+
+        // 【修改点1】将量程下限 rangeMin 从 -0.5 修改为 -1.0
+        function val2py(val, canvasH) {
+            const top = 30;
+            const bottom = canvasH - 30;
+            const rangeMin = -1.0;
+            const rangeMax = 1.0;
+            const ratio = (val - rangeMin) / (rangeMax - rangeMin);
+            return bottom - ratio * (bottom - top);
+        }
+
+        function rad2px(rad, padL, plotW) {
+            return padL + ((rad - minRad) / radRange) * plotW;
+        }
+        function resetCurve() {
+            spreadRange = 0;
+            redrawAll();
+        }
+        function loopFrame() {
+            const w = curveW;
+            const padL = 30, padR = 12;
+            const plotW = w - padL - padR;
+            spreadRange += speed * 0.6;
+            if (spreadRange >= plotW) {
+                spreadRange = 0;
+            }
+            redrawAll();
+        }
+        function redrawAll() {
+            drawVec();
+            redrawCurve();
+        }
+        function drawVec() {
+            const w = vecW;
+            const h = vecH;
+            vecCtx.clearRect(0, 0, w, h);
+            const cx = w / 2;
+            const cy = h / 2;
+            const padL = 30, padR = 12;
+            const plotW = w - padL - padR;
+            const curRad = minRad + (spreadRange / plotW) * radRange;
+            const dRad = curRad;
+
+            vecCtx.strokeStyle = '#ccc';
+            vecCtx.beginPath();
+            vecCtx.moveTo(0, cy + 0.5); vecCtx.lineTo(w, cy + 0.5);
+            vecCtx.moveTo(cx + 0.5, 0); vecCtx.lineTo(cx + 0.5, h);
+            vecCtx.stroke();
+
+            let x = cx, y = cy;
+            vecCtx.strokeStyle = '#2da02d';
+            vecCtx.fillStyle = '#2da02d';
+            vecCtx.lineWidth = 2;
+            let sumX = 0, sumY = 0;
+            for (let i = 0; i < N; i++) {
+                const ang = i * dRad;
+                const dx = A0 * Math.cos(ang);
+                const dy = -A0 * Math.sin(ang);
+                vecCtx.beginPath();
+                vecCtx.moveTo(x, y);
+                vecCtx.lineTo(x + dx, y + dy);
+                vecCtx.stroke();
+                vecCtx.beginPath();
+                vecCtx.arc(x + dx, y + dy, 3, 0, 2 * PI);
+                vecCtx.fill();
+                x += dx; y += dy;
+                sumX += dx; sumY += dy;
+            }
+            vecCtx.strokeStyle = '#f03030';
+            vecCtx.lineWidth = 4;
+            vecCtx.beginPath();
+            vecCtx.moveTo(cx, cy);
+            vecCtx.lineTo(cx + sumX, cy + sumY);
+            vecCtx.stroke();
+        }
+
+        function redrawCurve() {
+            const w = curveW;
+            const h = curveH;
+            curveCtx.clearRect(0, 0, w, h);
+            const padL = 30, padR = 12, padT = 30, padB = 30;
+            const plotW = w - padL - padR;
+            const leftBound = padL;
+            const rightBound = padL + spreadRange;
+            const yZeroPy = val2py(0, h);
+            const xZeroPx = rad2px(0, padL, plotW);
+
+            curveCtx.strokeStyle = '#333';
+            curveCtx.lineWidth = 1;
+            curveCtx.beginPath();
+            curveCtx.moveTo(padL, yZeroPy + 0.5);
+            curveCtx.lineTo(w - padR, yZeroPy + 0.5);
+            curveCtx.stroke();
+            curveCtx.beginPath();
+            curveCtx.moveTo(xZeroPx + 0.5, padT);
+            curveCtx.lineTo(xZeroPx + 0.5, h - padB);
+            curveCtx.stroke();
+
+            const xTicks = [];
+            const xTickText = [];
+            for (let k = 0; k <= 4; k += 1) {
+                xTicks.push(k * PI);
+                xTickText.push(`${k}π`);
+            }
+            curveCtx.fillStyle = '#000';
+            curveCtx.font = '11px "Microsoft Yahei", sans-serif';
+            xTicks.forEach((rad, idx) => {
+                const px = rad2px(rad, padL, plotW);
+                curveCtx.beginPath();
+                curveCtx.moveTo(px + 0.5, yZeroPy);
+                curveCtx.lineTo(px + 0.5, yZeroPy + 6);
+                curveCtx.stroke();
+                curveCtx.fillText(xTickText[idx], px - 8, yZeroPy + 12);
+            })
+            curveCtx.fillText('相位差 δ (rad)', w / 2 - 42, h - 8);
+
+            // 【修改点2】将Y轴刻度调整为 -1.0 到 1.0 的均匀分布
+            const yTicks = [-1.0, -0.5, 0, 0.5, 1.0];
+            yTicks.forEach(val => {
+                const py = val2py(val, h);
+                curveCtx.beginPath();
+                curveCtx.moveTo(xZeroPx - 6, py + 0.5);
+                curveCtx.lineTo(xZeroPx, py + 0.5);
+                curveCtx.stroke();
+                curveCtx.fillText(val.toFixed(1), xZeroPx - 28, py);
+            })
+
+            if (drawMode === 'both' || drawMode === 'amp') {
+                curveCtx.strokeStyle = '#0066ff';
+                curveCtx.lineWidth = 2;
+                curveCtx.beginPath();
+                let first = true;
+                for (let px = padL; px <= w - padR; px += 1) {
+                    if (px < leftBound || px > rightBound) continue;
+                    const rad = minRad + ((px - padL) / plotW) * radRange;
+                    const amp = calcA(rad);
+                    const nA = normA(amp);
+                    const py = val2py(nA, h);
+                    if (first) {
+                        curveCtx.moveTo(px, py);
+                        first = false;
+                    } else {
+                        curveCtx.lineTo(px, py);
+                    }
+                }
+                curveCtx.stroke();
+            }
+
+            if (drawMode === 'both' || drawMode === 'int') {
+                curveCtx.strokeStyle = '#ff8800';
+                curveCtx.lineWidth = 2;
+                curveCtx.beginPath();
+                let first = true;
+                for (let px = padL; px <= w - padR; px += 1) {
+                    if (px < leftBound || px > rightBound) continue;
+                    const rad = minRad + ((px - padL) / plotW) * radRange;
+                    const amp = calcA(rad);
+                    const nA = normA(amp);
+                    const nI = calcI(nA);
+                    const py = val2py(nI, h);
+                    if (first) {
+                        curveCtx.moveTo(px, py);
+                        first = false;
+                    } else {
+                        curveCtx.lineTo(px, py);
+                    }
+                }
+                curveCtx.stroke();
+            }
+        }
+
+        resizeCanvases();
+        resetCurve();
+
+        window.addEventListener('resize', () => {
+            resizeCanvases();
+            redrawAll();
+        });
+    </script>
+</body>
+</html>

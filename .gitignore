@@ -1,0 +1,10 @@
+# 未使用的大体积资源（不部署）
+assets/report/
+assets/slides/
+
+# 原始素材视频（已压缩为 video.mp4 后不再提交）
+assets/video/video_raw.mp4
+
+# 系统文件
+.DS_Store
+Thumbs.db

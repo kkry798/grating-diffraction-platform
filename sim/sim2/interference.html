@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多缝干涉 - 仅多缝因子仿真（主极大等高）</title>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --panel-bg: #16213e;
+            --text: #e0e0e0;
+            --accent: #4da6ff;
+            --slider-track: #2a3a5c;
+            --border: #2a3a5c;
+            --card: #1e2d4a;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 16px;
+            color: var(--text);
+            background-image: radial-gradient(ellipse at 50% 0%, rgba(77, 166, 255, 0.06) 0%, transparent 60%);
+        }
+
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1100px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .main-display {
+            flex: 1 1 680px;
+            min-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .canvas-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .canvas-card .card-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #8899bb;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            border-radius: 6px;
+            background: #000;
+            cursor: crosshair;
+        }
+
+        #patternCanvas { height: 300px; }
+        #curveCanvas { height: 170px; }
+
+        .control-panel {
+            flex: 0 0 300px;
+            min-width: 280px;
+            background: var(--panel-bg);
+            border-radius: var(--radius);
+            padding: 20px 18px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: sticky;
+            top: 16px;
+        }
+
+        .control-panel h2 {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(135deg, var(--accent), #7fc4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .separator { height: 1px; background: var(--border); margin: 2px 0; }
+
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #c8d6e5;
+        }
+        .control-group label .val {
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 60px;
+            text-align: right;
+            font-family: Consolas, monospace;
+        }
+        .unit { font-size: 0.7rem; color: #8899bb; margin-left: 2px; }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 7px;
+            border-radius: 4px;
+            background: var(--slider-track);
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid var(--accent);
+            box-shadow: 0 0 12px rgba(77, 166, 255, 0.4);
+            cursor: pointer;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #8899bb;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            height: 26px;
+            align-items: center;
+        }
+        .info-val {
+            color: #c8d6e5;
+            font-weight: 600;
+            font-family: Consolas, monospace;
+            white-space: nowrap;
+            min-width: 90px;
+            text-align: right;
+        }
+
+        @media (max-width: 820px) {
+            .container { flex-direction: column; }
+            .main-display { min-width: 0; }
+            .control-panel { position: static; min-width: 0; }
+            #patternCanvas { height: 220px; }
+            #curveCanvas { height: 140px; }
+        }
+    </style>
+</head>
+<body>
+    <a href="./index.html" style="position:fixed;top:14px;left:14px;z-index:10;color:#4da6ff;background:rgba(22,33,62,0.85);padding:6px 12px;border-radius:8px;text-decoration:none;font-size:13px;font-family:'Microsoft YaHei',sans-serif;">← 返回两部分选择</a>
+    <div class="container">
+        <div class="main-display">
+            <div class="canvas-card">
+                <div class="card-label">🔬 多缝干涉条纹（仅干涉因子，主极大等高）</div>
+                <canvas id="patternCanvas"></canvas>
+            </div>
+            <div class="canvas-card">
+                <div class="card-label">📈 干涉强度曲线 | 横轴: sinθ | 纵轴: I/I₀</div>
+                <canvas id="curveCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <h2>多缝干涉模拟</h2>
+            <div class="separator"></div>
+
+            <div class="control-group">
+                <label>缝数 N <span><span class="val" id="valN">4</span></span></label>
+                <input type="range" id="sliderN" min="2" max="20" value="4" step="1">
+            </div>
+            <div class="control-group">
+                <label>缝间距 d <span><span class="val" id="valD">2400</span><span class="unit">nm</span></span></label>
+                <input type="range" id="sliderD" min="800" max="6000" value="2400" step="50">
+            </div>
+            <div class="control-group">
+                <label>波长 λ <span><span class="val" id="valLambda">550</span><span class="unit">nm</span></span></label>
+                <input type="range" id="sliderLambda" min="380" max="780" value="550" step="1">
+            </div>
+            <div class="control-group">
+                <label>左边界 sinθ(min) <span class="val" id="valSinMin">-0.90</span></label>
+                <input type="range" id="sliderSinMin" min="-1.0" max="1.0" value="-0.90" step="0.01">
+            </div>
+            <div class="control-group">
+                <label>右边界 sinθ(max) <span class="val" id="valSinMax">0.90</span></label>
+                <input type="range" id="sliderSinMax" min="-1.0" max="1.0" value="0.90" step="0.01">
+            </div>
+
+            <div class="separator"></div>
+            <div class="info-row">
+                <span>一级主极大 sinθ(k=1)</span>
+                <span class="info-val" id="infoMax1">0.229</span>
+            </div>
+            <div class="info-row">
+                <span>相邻极小间隔 Δsinθ</span>
+                <span class="info-val" id="infoDeltaMin">0.057</span>
+            </div>
+            <div class="info-row">
+                <span>最大可见级次 k_max</span>
+                <span class="info-val" id="infoKmax">3</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const patternCanvas = document.getElementById('patternCanvas');
+            const patternCtx = patternCanvas.getContext('2d');
+            const curveCanvas = document.getElementById('curveCanvas');
+            const curveCtx = curveCanvas.getContext('2d');
+
+            const sliderN = document.getElementById('sliderN');
+            const sliderD = document.getElementById('sliderD');
+            const sliderLambda = document.getElementById('sliderLambda');
+            const sliderSinMin = document.getElementById('sliderSinMin');
+            const sliderSinMax = document.getElementById('sliderSinMax');
+
+            const valN = document.getElementById('valN');
+            const valD = document.getElementById('valD');
+            const valLambda = document.getElementById('valLambda');
+            const valSinMin = document.getElementById('valSinMin');
+            const valSinMax = document.getElementById('valSinMax');
+            const infoMax1 = document.getElementById('infoMax1');
+            const infoDeltaMin = document.getElementById('infoDeltaMin');
+            const infoKmax = document.getElementById('infoKmax');
+
+            // 多缝基础参数
+            let N = Number(sliderN.value);
+            let d = Number(sliderD.value);
+            let lambda = Number(sliderLambda.value);
+            let sinThetaMin = Number(sliderSinMin.value);
+            let sinThetaMax = Number(sliderSinMax.value);
+
+            let renderPending = false;
+            let resizeTimer = null;
+
+            // 波长转RGB颜色
+            function wavelengthToRGB(wl) {
+                let r = 0, g = 0, b = 0;
+                if (wl >= 380 && wl < 440) { r = -(wl - 440) / 60; b = 1; }
+                else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50; b = 1; }
+                else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
+                else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
+                else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
+                else if (wl >= 645 && wl <= 780) { r = 1; }
+                let factor = 1;
+                if (wl < 420) factor = 0.3 + 0.7 * (wl - 380) / 40;
+                if (wl > 700) factor = 0.3 + 0.7 * (780 - wl) / 80;
+                return { r: Math.max(0, Math.min(1, r * factor)), g: Math.max(0, Math.min(1, g * factor)), b: Math.max(0, Math.min(1, b * factor)) };
+            }
+
+            // sinc函数
+            function sinc(x) {
+                return Math.abs(x) < 1e-9 ? 1 : Math.sin(x) / x;
+            }
+
+            // 【仅多缝干涉因子，无单缝衍射包络】
+            // I = [sin(Nφ/2) / sin(φ/2)]², φ=2πd sinθ / λ
+            function multiSlitInterfereIntensity(sinTh) {
+                const phi = 2 * Math.PI * d * sinTh / lambda;
+                const halfPhi = phi / 2;
+                let numer = Math.sin(N * halfPhi);
+                let denom = Math.sin(halfPhi);
+                // 主极大时分母趋近0，极限为N
+                if (Math.abs(denom) < 1e-10) return 1.0;
+                const ratio = numer / denom;
+                return (ratio * ratio) / (N * N); // 归一化到0~1，所有主极大=1（等高）
+            }
+
+            // 画布尺寸自适应
+            function resizeCanvases() {
+                const pw = patternCanvas.clientWidth;
+                const ph = patternCanvas.clientHeight;
+                const cw = curveCanvas.clientWidth;
+                const ch = curveCanvas.clientHeight;
+                let change = false;
+                if (patternCanvas.width !== pw || patternCanvas.height !== ph) {
+                    patternCanvas.width = pw; patternCanvas.height = ph; change = true;
+                }
+                if (curveCanvas.width !== cw || curveCanvas.height !== ch) {
+                    curveCanvas.width = cw; curveCanvas.height = ch; change = true;
+                }
+                return change;
+            }
+
+            // 像素坐标 → sinθ
+            function ixToTheta(ix, w) {
+                return sinThetaMin + (sinThetaMax - sinThetaMin) * ix / (w - 1);
+            }
+
+            // sinθ → 像素横坐标
+            function thetaToX(th, w) {
+                return (th - sinThetaMin) / (sinThetaMax - sinThetaMin) * (w - 1);
+            }
+
+            // 帧渲染节流
+            function requestDraw() {
+                if (renderPending) return;
+                renderPending = true;
+                requestAnimationFrame(() => { drawAll(); renderPending = false; });
+            }
+
+            function drawAll() {
+                resizeCanvases();
+                drawPattern();
+                drawCurve();
+            }
+
+            // 绘制干涉条纹画布
+            function drawPattern() {
+                const w = patternCanvas.width;
+                const h = patternCanvas.height;
+                const imgData = patternCtx.createImageData(w, h);
+                const rgb = wavelengthToRGB(lambda);
+
+                for (let x = 0; x < w; x++) {
+                    const th = ixToTheta(x, w);
+                    const I = multiSlitInterfereIntensity(th);
+                    const bright = Math.pow(Math.min(1, I), 0.42);
+                    const r = Math.round(rgb.r * bright * 255);
+                    const g = Math.round(rgb.g * bright * 255);
+                    const b = Math.round(rgb.b * bright * 255);
+                    const off = x * 4;
+                    for (let y = 0; y < h; y++) {
+                        const idx = y * w * 4 + off;
+                        imgData.data[idx] = r;
+                        imgData.data[idx + 1] = g;
+                        imgData.data[idx + 2] = b;
+                        imgData.data[idx + 3] = 255;
+                    }
+                }
+                patternCtx.putImageData(imgData, 0, 0);
+
+                // 中央0级主极大虚线标记
+                const midX = thetaToX(0, w);
+                patternCtx.strokeStyle = 'rgba(255,255,255,0.5)';
+                patternCtx.lineWidth = 1;
+                patternCtx.setLineDash([4, 6]);
+                patternCtx.beginPath();
+                patternCtx.moveTo(midX, 0);
+                patternCtx.lineTo(midX, h);
+                patternCtx.stroke();
+                patternCtx.setLineDash([]);
+
+                patternCtx.fillStyle = 'rgba(255,255,255,0.8)';
+                patternCtx.font = '11px system-ui';
+                patternCtx.textAlign = 'center';
+                patternCtx.fillText('0级主极大', midX, h - 8);
+
+                // sinθ刻度
+                patternCtx.fillStyle = 'rgba(255,255,255,0.5)';
+                patternCtx.font = '9px system-ui';
+                for (let i = 0; i <= 5; i++) {
+                    const th = sinThetaMin + (sinThetaMax - sinThetaMin) * i / 5;
+                    const px = thetaToX(th, w);
+                    if (px > 10 && px < w - 10) patternCtx.fillText('sinθ=' + th.toFixed(2), px, h - 22);
+                }
+            }
+
+            // 绘制归一化强度曲线
+            function drawCurve() {
+                const w = curveCanvas.width;
+                const h = curveCanvas.height;
+                const margin = 30;
+                curveCtx.fillStyle = '#0a0a14';
+                curveCtx.fillRect(0, 0, w, h);
+
+                // 网格线
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+                curveCtx.lineWidth = 1;
+                const gx = w / 10, gy = (h - 2 * margin) / 5;
+                for (let i = 0; i <= 10; i++) { curveCtx.beginPath(); curveCtx.moveTo(i * gx, 0); curveCtx.lineTo(i * gx, h); curveCtx.stroke(); }
+                for (let i = 0; i <= 5; i++) {
+                    const y = h - margin - i * gy;
+                    curveCtx.beginPath(); curveCtx.moveTo(0, y); curveCtx.lineTo(w, y); curveCtx.stroke();
+                    curveCtx.fillStyle = 'rgba(255,255,255,0.45)';
+                    curveCtx.font = '8px system-ui';
+                    curveCtx.textAlign = 'right';
+                    curveCtx.fillText((i / 5).toFixed(1), 18, y + 3);
+                }
+
+                // 横轴基线
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+                curveCtx.beginPath(); curveCtx.moveTo(0, h - margin); curveCtx.lineTo(w, h - margin); curveCtx.stroke();
+
+                // 中央0级竖虚线
+                const midX = thetaToX(0, w);
+                curveCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+                curveCtx.setLineDash([3, 5]);
+                curveCtx.beginPath(); curveCtx.moveTo(midX, 0); curveCtx.lineTo(midX, h); curveCtx.stroke();
+                curveCtx.setLineDash([]);
+
+                // 强度曲线（密集采样 + 主极大强制等高，消除毛刺）
+                const rgb = wavelengthToRGB(lambda);
+                curveCtx.strokeStyle = `rgb(${Math.round(rgb.r * 255)},${Math.round(rgb.g * 255)},${Math.round(rgb.b * 255)})`;
+                curveCtx.lineWidth = 2;
+                curveCtx.lineJoin = 'round';
+                curveCtx.lineCap = 'round';
+                curveCtx.shadowColor = curveCtx.strokeStyle;
+                curveCtx.shadowBlur = 4;
+
+                const points = [];
+                // 密集均匀采样（远高于像素密度），让窄主极大平滑、无毛刺
+                const baseSamples = 8000;
+                for (let s = 0; s <= baseSamples; s++) {
+                    const x = (w - 1) * s / baseSamples;
+                    const th = ixToTheta(x, w);
+                    const I = multiSlitInterfereIntensity(th);
+                    const py = h - margin - I * (h - 2 * margin);
+                    points.push({ x: x, py: py });
+                }
+                // 补齐当前边界内所有k级主极大顶点，保证严格等高到 1.0
+                const maxK = Math.floor(d / lambda);
+                for (let k = -maxK; k <= maxK; k++) {
+                    const thPeak = k * lambda / d;
+                    if (thPeak < sinThetaMin || thPeak > sinThetaMax) continue;
+                    const xPeak = thetaToX(thPeak, w);
+                    const pyPeak = h - margin - 1.0 * (h - 2 * margin); // 主极大 I=1
+                    points.push({ x: xPeak, py: pyPeak });
+                }
+                points.sort((a, b) => a.x - b.x);
+
+                curveCtx.beginPath();
+                let first = true;
+                for (const p of points) {
+                    if (first) { curveCtx.moveTo(p.x, p.py); first = false; }
+                    else curveCtx.lineTo(p.x, p.py);
+                }
+                curveCtx.stroke();
+                curveCtx.shadowBlur = 0;
+
+                // 横轴刻度文字
+                curveCtx.fillStyle = 'rgba(255,255,255,0.5)';
+                curveCtx.font = '8px system-ui';
+                curveCtx.textAlign = 'center';
+                for (let i = 0; i <= 5; i++) {
+                    const th = sinThetaMin + (sinThetaMax - sinThetaMin) * i / 5;
+                    const px = thetaToX(th, w);
+                    if (px > 5 && px < w - 5) curveCtx.fillText(th.toFixed(2), px, h - 6);
+                }
+                curveCtx.textAlign = 'start';
+            }
+
+            // 更新右侧信息面板
+            function updateInfo() {
+                valN.textContent = N;
+                valD.textContent = d.toFixed(0);
+                valLambda.textContent = lambda.toFixed(0);
+                valSinMin.textContent = sinThetaMin.toFixed(2);
+                valSinMax.textContent = sinThetaMax.toFixed(2);
+
+                // 一级主极大 sinθ = λ/d
+                const sinMax1 = lambda / d;
+                infoMax1.textContent = sinMax1.toFixed(3);
+                // 相邻极小Δsinθ = λ/(N*d)
+                const deltaMin = lambda / (N * d);
+                infoDeltaMin.textContent = deltaMin.toFixed(3);
+                // 最大可见级次
+                const maxAbsSin = Math.max(Math.abs(sinThetaMin), Math.abs(sinThetaMax));
+                const kMax = Math.floor(maxAbsSin * d / lambda);
+                infoKmax.textContent = kMax;
+            }
+
+            // 限制sinθ左右边界不能交叉
+            function clampSinRange(e) {
+                let minV = Number(sliderSinMin.value);
+                let maxV = Number(sliderSinMax.value);
+                if (minV >= maxV) {
+                    if (e.target.id === 'sliderSinMin') {
+                        sliderSinMin.value = maxV - 0.02;
+                    } else {
+                        sliderSinMax.value = minV + 0.02;
+                    }
+                }
+                sinThetaMin = Number(sliderSinMin.value);
+                sinThetaMax = Number(sliderSinMax.value);
+            }
+
+            // 完整刷新逻辑
+            function fullRefresh(e) {
+                if (e && (e.target.id === 'sliderSinMin' || e.target.id === 'sliderSinMax')) {
+                    clampSinRange(e);
+                }
+                updateInfo();
+                requestDraw();
+            }
+
+            // 滑块绑定事件
+            sliderN.addEventListener('input', (e) => { N = Number(sliderN.value); fullRefresh(e); });
+            sliderD.addEventListener('input', (e) => { d = Number(sliderD.value); fullRefresh(e); });
+            sliderLambda.addEventListener('input', (e) => { lambda = Number(sliderLambda.value); fullRefresh(e); });
+            sliderSinMin.addEventListener('input', (e) => { fullRefresh(e); });
+            sliderSinMax.addEventListener('input', (e) => { fullRefresh(e); });
+
+            // 窗口自适应重绘
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => requestDraw(), 120);
+            });
+
+            // 初始渲染
+            fullRefresh();
+        })();
+    </script>
+</body>
+</html>
