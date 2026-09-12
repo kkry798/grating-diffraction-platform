@@ -133,74 +133,14 @@
   window.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 })();
 
-/* ===== 访客统计（在线人数 + 累计访问） ===== */
+/* ===== 在线人数（当前为本地模拟；待接入 Supabase 实时在线） ===== */
 (function () {
   const onlineEl = document.getElementById('onlineNum');
-  const visitEl = document.getElementById('visitCount');
-  if (!onlineEl && !visitEl) return;
-
-  // 累计访问：localStorage 计数（同一浏览器内累积）
-  let visits = 1;
-  try {
-    visits = parseInt(localStorage.getItem('grating_visits') || '0', 10) + 1;
-    localStorage.setItem('grating_visits', String(visits));
-  } catch (e) { /* 忽略隐私模式等异常 */ }
-  if (visitEl) visitEl.textContent = visits;
-
-  // 当前在线：静态站无后端，本地模拟演示；真实实时在线需服务端统计
+  if (!onlineEl) return;
   let online = 5 + Math.floor(Math.random() * 15);
-  if (onlineEl) onlineEl.textContent = online;
+  onlineEl.textContent = online;
   setInterval(function () {
     online = Math.max(1, Math.min(99, online + Math.floor(Math.random() * 3) - 1));
-    if (onlineEl) onlineEl.textContent = online;
+    onlineEl.textContent = online;
   }, 20000);
-})();
-
-/* ===== 评论区（本地存储演示） ===== */
-(function () {
-  const list = document.getElementById('commentList');
-  const nameInput = document.getElementById('commentName');
-  const textInput = document.getElementById('commentText');
-  const submit = document.getElementById('commentSubmit');
-  if (!list || !textInput || !submit) return;
-
-  const KEY = 'grating_comments';
-  let comments = [];
-  try { comments = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { comments = []; }
-
-  function esc(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-
-  function render() {
-    if (!comments.length) {
-      list.innerHTML = '<p class="comment-empty">还没有留言，来抢沙发～</p>';
-      return;
-    }
-    list.innerHTML = comments.map(function (c) {
-      return '<div class="comment-item">'
-        + '<div class="comment-head"><span class="comment-name">' + esc(c.name || '匿名') + '</span>'
-        + '<span class="comment-time">' + esc(c.time) + '</span></div>'
-        + '<p class="comment-body">' + esc(c.text) + '</p></div>';
-    }).join('');
-  }
-
-  submit.addEventListener('click', function () {
-    const text = textInput.value.trim();
-    if (!text) { textInput.focus(); return; }
-    const d = new Date();
-    const pad = function (n) { return String(n).padStart(2, '0'); };
-    const time = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
-      + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-    comments.unshift({ name: (nameInput.value || '').trim(), text: text, time: time });
-    if (comments.length > 200) comments.length = 200;
-    try { localStorage.setItem(KEY, JSON.stringify(comments)); } catch (e) {}
-    textInput.value = '';
-    nameInput.value = '';
-    render();
-  });
-
-  render();
 })();

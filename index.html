@@ -408,12 +408,22 @@
     <p class="section-lead">有问题？在这里留言讨论</p>
   </div>
   <div class="comment-wrap reveal">
-    <div class="comment-form">
-      <input type="text" id="commentName" placeholder="昵称（选填）" maxlength="20" autocomplete="off">
-      <textarea id="commentText" placeholder="写下你的问题或想法…" rows="3" maxlength="500"></textarea>
-      <button class="btn btn-primary" id="commentSubmit" type="button">发表留言</button>
-    </div>
-    <div class="comment-list" id="commentList"></div>
+    <script src="https://giscus.app/client.js"
+      data-repo="kkry798/grating-diffraction-platform"
+      data-repo-id="R_kgDOUXgiDw"
+      data-category="General"
+      data-category-id="DIC_kwDOUXgiD84DFawJ"
+      data-mapping="pathname"
+      data-strict="0"
+      data-reactions-enabled="1"
+      data-emit-metadata="0"
+      data-input-position="top"
+      data-theme="dark_dimmed"
+      data-lang="zh-CN"
+      data-loading="lazy"
+      crossorigin="anonymous"
+      async>
+    </script>
   </div>
 </section>
 
@@ -421,7 +431,7 @@
 <footer class="footer">
   <div class="footer-title">光分千色 · 栅览星河</div>
   <p>光栅衍射 · 数字化学习平台</p>
-  <div class="footer-stats">累计访问 <b id="visitCount">--</b> 次</div>
+  <div class="footer-stats">访问量 <b id="busuanzi_value_site_pv">--</b> 次 · 访客 <b id="busuanzi_value_site_uv">--</b> 人</div>
   <p class="footer-sub">让每一束光，都抵达星辰</p>
 </footer>
 
@@ -446,6 +456,7 @@
   <span>在线 <b id="onlineNum">--</b> 人</span>
 </div>
 
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
