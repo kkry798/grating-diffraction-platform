@@ -133,14 +133,35 @@
   window.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 })();
 
-/* ===== 在线人数（当前为本地模拟；待接入 Supabase 实时在线） ===== */
+/* ===== 实时在线人数（Supabase Realtime Presence） ===== */
 (function () {
   const onlineEl = document.getElementById('onlineNum');
   if (!onlineEl) return;
-  let online = 5 + Math.floor(Math.random() * 15);
-  onlineEl.textContent = online;
-  setInterval(function () {
-    online = Math.max(1, Math.min(99, online + Math.floor(Math.random() * 3) - 1));
-    onlineEl.textContent = online;
-  }, 20000);
+
+  const SUPABASE_URL = 'https://wneyhpkehpjjvqnptopc.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_WPtCiIczC4Z5jMfpboQX9w_Dg4mDiBk';
+
+  function set(n) { onlineEl.textContent = n; }
+
+  if (!window.supabase || typeof window.supabase.createClient !== 'function') {
+    set('--'); // CDN 未加载
+    return;
+  }
+
+  const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const channel = client.channel('online-viewers');
+
+  function refresh() {
+    set(Object.keys(channel.presenceState()).length);
+  }
+
+  channel
+    .on('presence', { event: 'sync' }, refresh)
+    .on('presence', { event: 'join' }, refresh)
+    .on('presence', { event: 'leave' }, refresh)
+    .subscribe(function (status) {
+      if (status === 'SUBSCRIBED') {
+        channel.track({ online_at: new Date().toISOString() });
+      }
+    });
 })();
