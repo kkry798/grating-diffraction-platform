@@ -126,6 +126,24 @@
 
   <div class="grating-demo reveal">
     <div class="grating-demo-head">
+      <h3>光的波动 · 行波演示</h3>
+      <p>拖动波长，观察波的疏密与颜色 —— 波长越短，波越密、频率越高</p>
+    </div>
+    <canvas id="waveCanvas"></canvas>
+    <div class="grating-demo-ctrl">
+      <div class="demo-row">
+        <label>波长 <i>λ</i></label>
+        <span class="demo-val"><b id="waveLambda">550</b>&nbsp;nm</span>
+      </div>
+      <input type="range" id="waveSlider" min="380" max="780" value="550" step="1">
+      <div class="demo-row demo-readout">
+        <span>频率 <i>f</i> = c/λ ≈ <b id="waveFreq">5.45</b> ×10¹⁴ Hz</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grating-demo reveal">
+    <div class="grating-demo-head">
       <h3>亲手试一试 · 色散角随波长变化</h3>
       <p>固定光栅常数 <i>d</i> = 2000 nm，拖动滑块，观察 ±1 级衍射光的角度与颜色</p>
     </div>

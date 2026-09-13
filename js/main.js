@@ -364,3 +364,114 @@
   slider.addEventListener('input', draw);
   window.addEventListener('resize', () => { resize(); draw(); });
 })();
+
+/* ===== 沉浸式升级 · 光的波动动画 ===== */
+(function () {
+  const canvas = document.getElementById('waveCanvas');
+  const slider = document.getElementById('waveSlider');
+  const lamEl = document.getElementById('waveLambda');
+  const fEl = document.getElementById('waveFreq');
+  if (!canvas || !slider) return;
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, dpr = 1;
+
+  function wlToRGB(wl) {
+    let r = 0, g = 0, b = 0;
+    if (wl >= 380 && wl < 440)      { r = -(wl - 440) / 60; b = 1; }
+    else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50; b = 1; }
+    else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
+    else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
+    else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
+    else if (wl >= 645)             { r = 1; }
+    let f = 1;
+    if (wl < 420) f = 0.3 + 0.7 * (wl - 380) / 40;
+    if (wl > 700) f = 0.3 + 0.7 * (780 - wl) / 80;
+    return {
+      r: Math.max(0, Math.min(1, r * f)),
+      g: Math.max(0, Math.min(1, g * f)),
+      b: Math.max(0, Math.min(1, b * f))
+    };
+  }
+  function css(col, a) {
+    return 'rgba(' + Math.round(col.r * 255) + ',' + Math.round(col.g * 255) + ',' + Math.round(col.b * 255) + ',' + (a == null ? 1 : a) + ')';
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    W = Math.max(1, rect.width);
+    H = Math.max(1, rect.height);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw(phase) {
+    const lambda = +slider.value;
+    const col = wlToRGB(lambda);
+    const cstr = css(col);
+    const period = 46 + (lambda - 380) / 400 * 74; // 380nm→46px(密), 780nm→120px(疏)
+    const amp = H * 0.26;
+    const cy = H * 0.5;
+
+    lamEl.textContent = lambda;
+    lamEl.style.color = cstr;
+    fEl.textContent = (3000 / lambda).toFixed(2);
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.lineCap = 'round';
+
+    // 传播轴 + 方向箭头
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W - 6, cy); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(W - 6, cy); ctx.lineTo(W - 14, cy - 4);
+    ctx.moveTo(W - 6, cy); ctx.lineTo(W - 14, cy + 4);
+    ctx.stroke();
+
+    // 行波（随相位向右传播）
+    ctx.strokeStyle = cstr;
+    ctx.lineWidth = 2.5;
+    ctx.shadowColor = cstr;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 2) {
+      const y = cy - amp * Math.sin(2 * Math.PI * x / period - phase);
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // λ 标注（一个波长跨度的双向箭头）
+    const lx0 = W * 0.06;
+    const lx1 = lx0 + period;
+    const ly = cy + amp + 18;
+    ctx.strokeStyle = 'rgba(255,230,140,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(lx0, ly); ctx.lineTo(lx1, ly); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(lx0, ly - 6); ctx.lineTo(lx0, ly + 3);
+    ctx.moveTo(lx1, ly - 6); ctx.lineTo(lx1, ly + 3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(lx0, ly); ctx.lineTo(lx0 + 5, ly - 4); ctx.moveTo(lx0, ly); ctx.lineTo(lx0 + 5, ly + 4);
+    ctx.moveTo(lx1, ly); ctx.lineTo(lx1 - 5, ly - 4); ctx.moveTo(lx1, ly); ctx.lineTo(lx1 - 5, ly + 4);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,230,140,0.95)';
+    ctx.font = 'bold 13px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('λ', (lx0 + lx1) / 2, ly + 20);
+  }
+
+  resize();
+  let start = null;
+  function loop(t) {
+    if (start === null) start = t;
+    const phase = ((t - start) / 1000) * 6; // 约 1 个周期 / 秒
+    draw(phase);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  window.addEventListener('resize', resize);
+})();
