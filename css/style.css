@@ -794,3 +794,59 @@ a { color: inherit; text-decoration: none; }
   .grating-demo { padding: 22px 16px 20px; }
   .back-top { right: 14px; bottom: 64px; width: 40px; height: 40px; font-size: 16px; }
 }
+
+/* ============================================================
+   高级质感 · 滚动条 / 选中 / 章节水印 / 卡片光晕 / 光谱线
+   ============================================================ */
+
+/* 自定义滚动条 */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #070714; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #7a5cff, #38e8ff);
+  border-radius: 8px; border: 2px solid #070714;
+}
+::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, #8a6cff, #48f8ff); }
+html { scrollbar-color: #7a5cff #070714; scrollbar-width: thin; }
+
+/* 文字选中高亮 */
+::selection { background: rgba(122,92,255,.38); color: #fff; }
+
+/* 章节标题 · 水印序号 + 渐变标题 */
+.section-head { position: relative; }
+.section-num {
+  position: absolute;
+  left: 50%; top: -0.22em;
+  transform: translateX(-50%);
+  display: block;
+  font-size: clamp(76px, 17vw, 170px);
+  font-weight: 800; line-height: 1; letter-spacing: 0; margin: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 72%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  pointer-events: none; user-select: none;
+}
+.section-head h2 {
+  background: linear-gradient(180deg, #ffffff, #b9c8ff 82%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* 卡片悬浮 · 光谱光晕 */
+.card:hover {
+  box-shadow: 0 18px 44px rgba(0,0,0,.45), 0 0 0 1px rgba(122,92,255,.18), 0 0 34px rgba(122,92,255,.14);
+  border-color: rgba(140,140,255,.30);
+}
+.sim-card:hover {
+  box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(56,232,255,.18), 0 0 34px rgba(56,232,255,.14);
+  border-color: rgba(120,220,255,.30);
+}
+
+/* 页脚顶部 · 光谱分割线 */
+.footer { position: relative; }
+.footer::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--spec);
+  opacity: .8;
+  border-radius: 2px;
+}
