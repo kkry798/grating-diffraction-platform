@@ -164,7 +164,7 @@
   <div class="sim-grid">
     <a class="sim-card reveal" href="sim/sim1/index.html" target="_blank" rel="noopener" data-title="单缝衍射">
       <div class="sim-thumb">
-        <img src="sim/assets/preview/sim1.jpg" alt="单缝衍射仿真" loading="lazy">
+        <img src="sim/assets/preview/sim1.png" alt="单缝衍射仿真" loading="lazy">
         <span class="sim-live">交互 · 实时</span>
       </div>
       <div class="sim-body">
@@ -176,7 +176,7 @@
     </a>
     <a class="sim-card reveal" href="sim/sim2/index.html" target="_blank" rel="noopener" data-title="多缝干涉">
       <div class="sim-thumb">
-        <img src="sim/assets/preview/sim2.jpg" alt="多缝干涉仿真" loading="lazy">
+        <img src="sim/assets/preview/sim2.png" alt="多缝干涉仿真" loading="lazy">
         <span class="sim-live">交互 · 实时</span>
       </div>
       <div class="sim-body">
@@ -188,7 +188,7 @@
     </a>
     <a class="sim-card reveal" href="sim/sim3/index.html" target="_blank" rel="noopener" data-title="光栅衍射">
       <div class="sim-thumb">
-        <img src="sim/assets/preview/sim3.jpg" alt="光栅衍射仿真" loading="lazy">
+        <img src="sim/assets/preview/sim3.png" alt="光栅衍射仿真" loading="lazy">
         <span class="sim-live">交互 · 实时</span>
       </div>
       <div class="sim-body">
@@ -296,15 +296,26 @@
 
   <div class="measure-block reveal">
     <h3 class="block-title">测量原理</h3>
-    <div class="equation">
-      <div class="eq-main"><i>d</i>·sin<i>θ</i> = <i>k</i>·<i>λ</i></div>
-      <div class="eq-caption">紫光测光栅常数 d → 代入求绿光波长 λ</div>
-      <div class="eq-legend">
-        <span>用已知波长紫光测 d</span>
-        <span>再测绿光谱线求 λ</span>
-        <span>相对误差验证</span>
+    <div class="measure-flow">
+      <div class="measure-step">
+        <span class="measure-step-num">①</span>
+        <div class="measure-step-body">
+          <div class="measure-step-title">测光栅常数 <i>d</i></div>
+          <div class="measure-eq"><i>d</i> = <i>k</i>·<i>λ</i><sub>紫</sub> / sin<i>θ</i><sub>1</sub></div>
+          <div class="measure-eq-sub">紫光波长已知 <i>λ</i><sub>紫</sub> = 435.8 nm，测 ±1 级衍射角 <i>θ</i><sub>1</sub></div>
+        </div>
+      </div>
+      <div class="measure-arrow" aria-hidden="true">→</div>
+      <div class="measure-step">
+        <span class="measure-step-num">②</span>
+        <div class="measure-step-body">
+          <div class="measure-step-title">测绿光波长 <i>λ</i><sub>绿</sub></div>
+          <div class="measure-eq"><i>λ</i><sub>绿</sub> = <i>d</i>·sin<i>θ</i><sub>2</sub> / <i>k</i></div>
+          <div class="measure-eq-sub">用已求得的 <i>d</i>，测绿光 ±1 级衍射角 <i>θ</i><sub>2</sub> → 得 <i>λ</i><sub>绿</sub></div>
+        </div>
       </div>
     </div>
+    <p class="measure-flow-note">核心思路：<b>以已知波长「定标」→ 反推未知波长</b>，两次代入同一光栅方程。</p>
   </div>
 
   <div class="measure-block reveal">

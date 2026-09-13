@@ -426,6 +426,8 @@ a { color: inherit; text-decoration: none; }
   .duo-grid { grid-template-columns: 1fr; }
   .video-wrap { grid-template-columns: 1fr; gap: 18px; }
   .result-panel { grid-template-columns: 1fr; padding: 28px; gap: 24px; }
+  .measure-flow { grid-template-columns: 1fr; gap: 14px; }
+  .measure-arrow { transform: rotate(90deg); justify-self: center; }
 }
 
 @media (max-width: 560px) {
@@ -462,6 +464,12 @@ a { color: inherit; text-decoration: none; }
 
   .footer { padding: 50px 20px 40px; }
   .footer-title { font-size: 22px; }
+
+  .measure-step { padding: 22px 18px; gap: 12px; }
+  .measure-step-num { width: 36px; height: 36px; font-size: 16px; border-radius: 10px; }
+  .measure-eq { font-size: 21px; }
+  .data-table { font-size: 13px; }
+  .data-table th, .data-table td { padding: 10px 8px; }
 }
 
 /* ===== 实验测量 · 通用块 ===== */
@@ -485,6 +493,57 @@ a { color: inherit; text-decoration: none; }
 .panel li::before { content: "◆"; position: absolute; left: 0; color: var(--cyan); font-size: 10px; top: 4px; }
 .panel li b { color: var(--ink); }
 .duo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+
+/* ===== 测量原理 · 两步测量流程 ===== */
+.measure-flow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 18px;
+}
+.measure-step {
+  display: flex;
+  gap: 16px;
+  padding: 26px 24px;
+  border-radius: var(--radius);
+  background: var(--glass);
+  border: 1px solid var(--glass-brd);
+}
+.measure-step-num {
+  flex: 0 0 auto;
+  width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 18px; color: #0a0a14;
+  background: linear-gradient(135deg, #7a5cff, #3aa0ff);
+  box-shadow: 0 0 20px rgba(122,92,255,.35);
+}
+.measure-step:nth-child(3) .measure-step-num {
+  background: linear-gradient(135deg, #3aa0ff, #43f0a0);
+  box-shadow: 0 0 20px rgba(67,240,160,.32);
+}
+.measure-step-body { flex: 1; min-width: 0; }
+.measure-step-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+.measure-eq {
+  font-size: clamp(21px, 3.2vw, 30px);
+  font-weight: 700; font-style: italic; line-height: 1.25;
+  background: var(--spec);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+.measure-eq sub { font-size: 0.62em; }
+.measure-eq-sub { font-size: 13px; color: var(--ink-dim); line-height: 1.6; }
+.measure-arrow {
+  align-self: center;
+  font-size: 26px; font-weight: 700; color: var(--cyan);
+  text-shadow: 0 0 14px rgba(56,232,255,.5);
+}
+.measure-flow-note {
+  margin-top: 18px; text-align: center;
+  font-size: 13.5px; color: var(--ink-dim);
+}
+.measure-flow-note b { color: var(--yellow); }
 
 /* ===== 数据表 ===== */
 .data-table {
