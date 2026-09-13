@@ -11,6 +11,10 @@
 
 <!-- 背景星空画布 -->
 <canvas id="starfield" aria-hidden="true"></canvas>
+<!-- 光标光晕（桌面端） -->
+<div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+<!-- 顶部阅读进度条 -->
+<div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
 <!-- 顶部导航 -->
 <header class="nav" id="top">
@@ -117,6 +121,24 @@
       <span><i>θ</i> 衍射角</span>
       <span><i>k</i> 衍射级次</span>
       <span><i>λ</i> 入射光波长</span>
+    </div>
+  </div>
+
+  <div class="grating-demo reveal">
+    <div class="grating-demo-head">
+      <h3>亲手试一试 · 色散角随波长变化</h3>
+      <p>固定光栅常数 <i>d</i> = 2000 nm，拖动滑块，观察 ±1 级衍射光的角度与颜色</p>
+    </div>
+    <canvas id="demoCanvas"></canvas>
+    <div class="grating-demo-ctrl">
+      <div class="demo-row">
+        <label>波长 <i>λ</i></label>
+        <span class="demo-val"><b id="demoLambda">550</b>&nbsp;nm</span>
+      </div>
+      <input type="range" id="demoSlider" min="380" max="780" value="550" step="1">
+      <div class="demo-row demo-readout">
+        <span>±1 级衍射角 <i>θ</i><sub>1</sub> = <b id="demoTheta">16.0°</b></span>
+      </div>
     </div>
   </div>
 
@@ -465,6 +487,8 @@
   <span class="online-dot"></span>
   <span>在线 <b id="onlineNum">--</b> 人</span>
 </div>
+
+<button class="back-top" id="backTop" aria-label="回到顶部">↑</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>

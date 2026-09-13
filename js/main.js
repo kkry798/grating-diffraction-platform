@@ -165,3 +165,202 @@
       }
     });
 })();
+
+/* ===== 沉浸式升级 · 光标光晕 ===== */
+(function () {
+  const glow = document.getElementById('cursorGlow');
+  if (!glow) return;
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  let tx = -400, ty = -400, x = -400, y = -400;
+  window.addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; });
+  (function loop() {
+    x += (tx - x) * 0.12;
+    y += (ty - y) * 0.12;
+    glow.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ===== 沉浸式升级 · Hero 鼠标摆动 ===== */
+(function () {
+  const hero = document.querySelector('.hero');
+  const beam = document.querySelector('.hero-beam');
+  const content = document.querySelector('.hero-content');
+  if (!hero || !beam || !content) return;
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  hero.addEventListener('pointermove', e => {
+    const r = hero.getBoundingClientRect();
+    const mx = (e.clientX - r.left) / r.width - 0.5;
+    const my = (e.clientY - r.top) / r.height - 0.5;
+    beam.style.transform = 'rotate(' + (mx * 6).toFixed(2) + 'deg)';
+    content.style.transform = 'translate(' + (mx * -10).toFixed(2) + 'px,' + (my * -10).toFixed(2) + 'px)';
+  });
+  hero.addEventListener('pointerleave', () => {
+    beam.style.transform = '';
+    content.style.transform = '';
+  });
+})();
+
+/* ===== 沉浸式升级 · 卡片 3D 倾斜 ===== */
+(function () {
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  document.querySelectorAll('.sim-card, .card').forEach(el => {
+    el.addEventListener('pointermove', e => {
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width;
+      const py = (e.clientY - r.top) / r.height;
+      const rx = (py - 0.5) * -8;
+      const ry = (px - 0.5) * 10;
+      el.style.transition = 'transform .12s ease, box-shadow .3s ease, border-color .3s ease';
+      el.style.transform = 'perspective(900px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg) translateY(-6px)';
+    });
+    el.addEventListener('pointerleave', () => {
+      el.style.transition = 'transform .35s ease, box-shadow .3s ease, border-color .3s ease';
+      el.style.transform = '';
+    });
+  });
+})();
+
+/* ===== 沉浸式升级 · 阅读进度条 ===== */
+(function () {
+  const bar = document.getElementById('scrollProgress');
+  if (!bar) return;
+  function upd() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p = max > 0 ? window.scrollY / max : 0;
+    bar.style.transform = 'scaleX(' + p + ')';
+  }
+  window.addEventListener('scroll', upd, { passive: true });
+  window.addEventListener('resize', upd);
+  upd();
+})();
+
+/* ===== 沉浸式升级 · 回到顶部 ===== */
+(function () {
+  const btn = document.getElementById('backTop');
+  if (!btn) return;
+  window.addEventListener('scroll', () => {
+    btn.classList.toggle('show', window.scrollY > 600);
+  }, { passive: true });
+  btn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+})();
+
+/* ===== 沉浸式升级 · 光栅色散角互动演示 ===== */
+(function () {
+  const canvas = document.getElementById('demoCanvas');
+  const slider = document.getElementById('demoSlider');
+  const lamEl = document.getElementById('demoLambda');
+  const thetaEl = document.getElementById('demoTheta');
+  if (!canvas || !slider) return;
+  const ctx = canvas.getContext('2d');
+  const D = 2000; // 光栅常数 nm
+  let W = 0, H = 0, dpr = 1;
+
+  function wlToRGB(wl) {
+    let r = 0, g = 0, b = 0;
+    if (wl >= 380 && wl < 440)      { r = -(wl - 440) / 60; b = 1; }
+    else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50; b = 1; }
+    else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
+    else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
+    else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
+    else if (wl >= 645)             { r = 1; }
+    let f = 1;
+    if (wl < 420) f = 0.3 + 0.7 * (wl - 380) / 40;
+    if (wl > 700) f = 0.3 + 0.7 * (780 - wl) / 80;
+    return {
+      r: Math.max(0, Math.min(1, r * f)),
+      g: Math.max(0, Math.min(1, g * f)),
+      b: Math.max(0, Math.min(1, b * f))
+    };
+  }
+  function css(col, a) {
+    return 'rgba(' + Math.round(col.r * 255) + ',' + Math.round(col.g * 255) + ',' + Math.round(col.b * 255) + ',' + (a == null ? 1 : a) + ')';
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = canvas.getBoundingClientRect();
+    W = Math.max(1, rect.width);
+    H = Math.max(1, rect.height);
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw() {
+    const lambda = +slider.value;
+    const col = wlToRGB(lambda);
+    const cstr = css(col);
+    const sin = lambda / D;
+    const theta = Math.asin(Math.min(1, sin));
+    const deg = theta * 180 / Math.PI;
+
+    lamEl.textContent = lambda;
+    lamEl.style.color = cstr;
+    thetaEl.textContent = deg.toFixed(1) + '°';
+
+    ctx.clearRect(0, 0, W, H);
+    const gx = W * 0.36, cy = H * 0.5;
+    const maxSin = Math.max(Math.sin(theta), 0.15);
+    const rayLen = Math.max(70, Math.min(W - gx - 26, (cy - 26) / maxSin));
+
+    ctx.lineCap = 'round';
+
+    // 入射光（所选波长颜色）
+    ctx.strokeStyle = cstr;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = cstr;
+    ctx.shadowBlur = 9;
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(gx, cy); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 光栅刻线
+    ctx.strokeStyle = 'rgba(150,180,230,0.9)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(gx, cy - 44); ctx.lineTo(gx, cy + 44); ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(120,150,200,0.55)';
+    for (let i = -5; i <= 5; i++) {
+      ctx.beginPath(); ctx.moveTo(gx - 4, cy + i * 7.2); ctx.lineTo(gx + 4, cy + i * 7.2); ctx.stroke();
+    }
+
+    // 0 级（法线，虚线）
+    ctx.setLineDash([6, 6]);
+    ctx.strokeStyle = css(col, 0.35);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(W, cy); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // ±1 级衍射光
+    ctx.strokeStyle = cstr;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = cstr;
+    ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(gx + rayLen * Math.cos(theta), cy - rayLen * Math.sin(theta)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(gx + rayLen * Math.cos(theta), cy + rayLen * Math.sin(theta)); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // 角度弧
+    const arcR = 36;
+    ctx.strokeStyle = 'rgba(255,230,140,0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(gx, cy, arcR, -theta, 0); ctx.stroke();
+
+    // 标签
+    ctx.fillStyle = 'rgba(210,222,250,0.9)';
+    ctx.font = '12px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('光栅', gx, cy - 54);
+    ctx.fillText('0 级', W - 24, cy - 10);
+    ctx.fillStyle = 'rgba(255,230,140,0.95)';
+    ctx.fillText('θ₁', gx + arcR + 20, cy - arcR * 0.55);
+    ctx.fillStyle = cstr;
+    ctx.font = 'bold 12px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.fillText('+1 / −1 级', gx + rayLen - 34, cy - rayLen * Math.sin(theta) - 14);
+  }
+
+  resize();
+  draw();
+  slider.addEventListener('input', draw);
+  window.addEventListener('resize', () => { resize(); draw(); });
+})();
