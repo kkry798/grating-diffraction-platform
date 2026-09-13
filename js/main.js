@@ -166,21 +166,6 @@
     });
 })();
 
-/* ===== 沉浸式升级 · 光标光晕 ===== */
-(function () {
-  const glow = document.getElementById('cursorGlow');
-  if (!glow) return;
-  if (!window.matchMedia('(hover: hover)').matches) return;
-  let tx = -400, ty = -400, x = -400, y = -400;
-  window.addEventListener('pointermove', e => { tx = e.clientX; ty = e.clientY; });
-  (function loop() {
-    x += (tx - x) * 0.12;
-    y += (ty - y) * 0.12;
-    glow.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-    requestAnimationFrame(loop);
-  })();
-})();
-
 /* ===== 沉浸式升级 · Hero 鼠标摆动 ===== */
 (function () {
   const hero = document.querySelector('.hero');
@@ -192,32 +177,12 @@
     const r = hero.getBoundingClientRect();
     const mx = (e.clientX - r.left) / r.width - 0.5;
     const my = (e.clientY - r.top) / r.height - 0.5;
-    beam.style.transform = 'rotate(' + (mx * 6).toFixed(2) + 'deg)';
-    content.style.transform = 'translate(' + (mx * -10).toFixed(2) + 'px,' + (my * -10).toFixed(2) + 'px)';
+    beam.style.transform = 'rotate(' + (mx * 3.5).toFixed(2) + 'deg)';
+    content.style.transform = 'translate(' + (mx * -6).toFixed(2) + 'px,' + (my * -6).toFixed(2) + 'px)';
   });
   hero.addEventListener('pointerleave', () => {
     beam.style.transform = '';
     content.style.transform = '';
-  });
-})();
-
-/* ===== 沉浸式升级 · 卡片 3D 倾斜 ===== */
-(function () {
-  if (!window.matchMedia('(hover: hover)').matches) return;
-  document.querySelectorAll('.sim-card, .card').forEach(el => {
-    el.addEventListener('pointermove', e => {
-      const r = el.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width;
-      const py = (e.clientY - r.top) / r.height;
-      const rx = (py - 0.5) * -8;
-      const ry = (px - 0.5) * 10;
-      el.style.transition = 'transform .12s ease, box-shadow .3s ease, border-color .3s ease';
-      el.style.transform = 'perspective(900px) rotateX(' + rx.toFixed(2) + 'deg) rotateY(' + ry.toFixed(2) + 'deg) translateY(-6px)';
-    });
-    el.addEventListener('pointerleave', () => {
-      el.style.transition = 'transform .35s ease, box-shadow .3s ease, border-color .3s ease';
-      el.style.transform = '';
-    });
   });
 })();
 
