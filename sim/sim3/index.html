@@ -1,1098 +1,1334 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>光栅衍射模拟 | 边界拖动干涉主峰等高永久修复</title>
-    <style>
-        :root {
-            --bg: #1a1a2e;
-            --panel-bg: #16213e;
-            --text: #e0e0e0;
-            --accent: #4da6ff;
-            --accent3: #8866ff;
-            --red: #e74c3c;
-            --blue: #3498db;
-            --purple: #9b59b6;
-            --slider-track: #2a3a5c;
-            --border: #2a3a5c;
-            --card: #1e2d4a;
-            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-            --radius: 12px;
-            --transition: 0.2s ease;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>光栅衍射 · 3D 光路模拟（反射姿态联动修正版）</title>
+<style>
+    :root{
+        --bg:#1a1a2e; --panel-bg:#16213e; --text:#e0e0e0;
+        --accent:#4da6ff; --accent2:#ff6b9d; --accent3:#8866ff;
+        --slider-track:#2a3a5c; --border:#2a3a5c; --card:#1e2d4a;
+        --shadow:0 4px 24px rgba(0,0,0,.4); --radius:12px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+        background:var(--bg);
+        font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+        color:var(--text); padding:16px; min-height:100vh;
+        background-image:
+            radial-gradient(ellipse at 50% 0%, rgba(77,166,255,.07) 0%, transparent 60%),
+            radial-gradient(ellipse at 85% 100%, rgba(255,107,157,.05) 0%, transparent 60%);
+    }
+    .app{display:flex;gap:18px;max-width:1460px;margin:0 auto;flex-wrap:wrap;align-items:flex-start}
+    .left-col{flex:1 1 720px;min-width:420px;display:flex;flex-direction:column;gap:16px}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+          border:1px solid var(--border);overflow:hidden;position:relative}
+    #scene3d{display:block;width:100%;height:470px;background:#07070f;cursor:grab}
+    #scene3d:active{cursor:grabbing}
+    #patternCanvas{display:block;width:100%;height:220px;background:#000}
+    #curveCanvas{display:block;width:100%;height:210px;background:#0a0a14}
+    .overlay-hint{position:absolute;left:12px;bottom:10px;font-size:.72rem;color:#5b7099;
+                  background:rgba(10,15,30,.6);padding:3px 10px;border-radius:20px;
+                  border:1px solid rgba(77,166,255,.15);pointer-events:none}
+    .card-title{position:absolute;left:12px;top:8px;font-size:.7rem;letter-spacing:1px;
+                color:#5b7099;background:rgba(10,15,30,.6);padding:2px 10px;border-radius:20px;
+                border:1px solid rgba(77,166,255,.15);pointer-events:none}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    .view-toggle{position:absolute;right:10px;top:10px;display:flex;gap:6px;z-index:5}
+    .view-btn{
+        padding:5px 13px;background:rgba(20,35,60,.85);color:#8899bb;
+        border:1px solid rgba(77,166,255,.3);border-radius:14px;
+        font-size:.7rem;font-weight:600;cursor:pointer;transition:.2s;
+        backdrop-filter:blur(4px);
+    }
+    .view-btn:hover{background:rgba(40,70,120,.9);color:#c8d6e5}
+    .view-btn.active{background:#4da6ff;color:#fff;border-color:#4da6ff;
+                     box-shadow:0 0 12px rgba(77,166,255,.5)}
 
-        body {
-            background: var(--bg);
-            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding: 16px;
-            color: var(--text);
-            background-image:
-                radial-gradient(ellipse at 50% 0%, rgba(77, 166, 255, 0.06) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 100%, rgba(136, 102, 255, 0.04) 0%, transparent 60%);
-        }
+    .panel{flex:0 0 310px;min-width:290px;background:var(--panel-bg);border-radius:var(--radius);
+           padding:20px 18px;box-shadow:var(--shadow);border:1px solid var(--border);
+           display:flex;flex-direction:column;gap:14px;position:sticky;top:16px;
+           max-height:calc(100vh - 32px);overflow-y:auto}
+    .panel h2{text-align:center;font-size:1.25rem;font-weight:700;
+        background:linear-gradient(135deg,var(--accent),#7fc4ff);
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .subtitle{text-align:center;font-size:.72rem;color:#8899bb;margin-top:-8px}
+    .separator{height:1px;background:var(--border);margin:2px 0}
 
-        .container {
-            display: flex;
-            gap: 20px;
-            max-width: 1100px;
-            width: 100%;
-            flex-wrap: wrap;
-        }
+    .control-group{display:flex;flex-direction:column;gap:5px}
+    .control-group label{display:flex;justify-content:space-between;font-size:.82rem;
+                         font-weight:600;color:#c8d6e5}
+    .val{font-weight:700;color:var(--accent);min-width:52px;text-align:right;
+         font-family:Consolas,monospace}
+    .unit{font-size:.68rem;color:#8899bb;margin-left:2px}
 
-        .main-display {
-            flex: 1 1 680px;
-            min-width: 480px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+    input[type=range]{-webkit-appearance:none;width:100%;height:7px;border-radius:4px;
+        background:var(--slider-track);outline:none;cursor:pointer}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;
+        border-radius:50%;background:#fff;border:3px solid var(--accent);
+        box-shadow:0 0 12px rgba(77,166,255,.4);cursor:pointer}
+    input[type=range]:disabled{opacity:.35;cursor:not-allowed}
+    input[type=range]:disabled::-webkit-slider-thumb{border-color:#666;box-shadow:none}
 
-        .canvas-card {
-            background: var(--card);
-            border-radius: var(--radius);
-            padding: 0;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            overflow: hidden;
-        }
+    .mode-toggle{display:flex;flex-wrap:wrap;gap:5px;background:var(--slider-track);
+                 border-radius:22px;padding:3px}
+    .mode-btn{flex:1;min-width:64px;padding:8px 4px;border-radius:19px;border:none;
+        cursor:pointer;font-weight:600;font-size:.74rem;background:transparent;
+        color:#8899bb;white-space:nowrap;transition:.2s}
+    .mode-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 10px rgba(77,166,255,.35)}
+    .mode-btn.white-active.active{background:var(--accent2)}
+    .mode-btn.mercury-active.active{background:var(--accent3)}
+    .mode-btn.sun-active.active{background:#ffaa33;color:#20140a}
+    .mode-btn.trans-active.active{background:#4da6ff}
+    .mode-btn.refl-active.active{background:#ff6b9d}
 
-        canvas {
-            display: block;
-            width: 100%;
-            border-radius: 0;
-            background: #000;
-            cursor: crosshair;
-        }
+    .info-row{display:flex;justify-content:space-between;font-size:.74rem;color:#8899bb;
+              padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);
+              height:26px;align-items:center}
+    .info-val{color:#c8d6e5;font-weight:600;font-family:Consolas,monospace;
+              white-space:nowrap;min-width:86px;text-align:right;font-size:.74rem}
+    .info-highlight{color:#ffcc66!important}
+    .tilt-tag{font-size:.66rem;color:#66779a;font-weight:400;margin-left:4px}
 
-        #patternCanvas { height: 300px; }
-        #curveCanvas { height: 170px; }
-        #decomposeCanvas { height: 220px; }
-
-        .canvas-title {
-            color: #8899bb;
-            font-size: 0.8rem;
-            padding: 6px 12px;
-            text-align: center;
-            background: #111a33;
-        }
-
-        .decompose-check-wrap {
-            display: flex;
-            gap: 16px;
-            padding: 8px 12px;
-            background: #111a33;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .decompose-check-wrap label {
-            font-size: 0.8rem;
-            color: #ccc;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .control-panel {
-            flex: 0 0 300px;
-            min-width: 280px;
-            background: var(--panel-bg);
-            border-radius: var(--radius);
-            padding: 20px 18px;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            position: sticky;
-            top: 16px;
-        }
-
-        .control-panel h2 {
-            text-align: center;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #fff;
-            background: linear-gradient(135deg, var(--accent), #7fc4ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .control-panel .subtitle {
-            text-align: center;
-            font-size: 0.75rem;
-            color: #8899bb;
-        }
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .control-group label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: #c8d6e5;
-        }
-
-        .control-group label .val {
-            font-weight: 700;
-            color: var(--accent);
-            min-width: 60px;
-            text-align: right;
-            font-family: Consolas, monospace;
-        }
-
-        .unit {
-            font-size: 0.7rem;
-            color: #8899bb;
-            margin-left: 2px;
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 7px;
-            border-radius: 4px;
-            background: var(--slider-track);
-            outline: none;
-            cursor: pointer;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: #fff;
-            border: 3px solid var(--accent);
-            box-shadow: 0 0 12px rgba(77, 166, 255, 0.4);
-            cursor: pointer;
-        }
-
-        input[type="range"]:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-        input[type="range"]:disabled::-webkit-slider-thumb {
-            border-color: #666;
-            box-shadow: none;
-        }
-
-        .mode-toggle {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            background: var(--slider-track);
-            border-radius: 22px;
-            padding: 3px;
-        }
-
-        .mode-btn {
-            flex: 1;
-            min-width: 70px;
-            padding: 9px 6px;
-            border-radius: 19px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.8rem;
-            background: transparent;
-            color: #8899bb;
-            white-space: nowrap;
-        }
-
-        .mode-btn.active {
-            background: var(--accent);
-            color: #fff;
-            box-shadow: 0 2px 10px rgba(77, 166, 255, 0.35);
-        }
-
-        .mode-btn.mercury-active.active {
-            background: var(--accent3);
-        }
-
-        .mode-btn.sun-active.active {
-            background: #ffaa33;
-        }
-
-        .scan-box {
-            background: rgba(77, 166, 255, 0.08);
-            border-radius: 10px;
-            padding: 12px;
-            border: 1px dashed rgba(77, 166, 255, 0.3);
-        }
-
-        .scan-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            margin: 6px 0;
-        }
-
-        .scan-row label {
-            flex: 1;
-            font-size: 0.8rem;
-        }
-
-        .scan-row input[type="number"] {
-            width: 70px;
-            padding: 3px 4px;
-            background: #16213e;
-            color: #e0e0e0;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            outline: none;
-        }
-
-        .scan-select {
-            width: 100%;
-            padding: 4px;
-            background: #16213e;
-            color: #e0e0e0;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            margin: 4px 0;
-        }
-
-        .scan-reverse-row {
-            margin: 8px 0 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.8rem;
-        }
-
-        .scan-buttons {
-            display: flex;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .scan-btn {
-            flex: 1;
-            padding: 7px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        #startScan {
-            background: #4da6ff;
-            color: #000;
-        }
-
-        #stopScan {
-            background: #ff6b6b;
-            color: #fff;
-        }
-
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.75rem;
-            color: #8899bb;
-            padding: 3px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            height: 26px;
-            align-items: center;
-        }
-
-        .info-val {
-            color: #c8d6e5;
-            font-weight: 600;
-            font-family: Consolas, monospace;
-            white-space: nowrap;
-            min-width: 90px;
-            text-align: right;
-        }
-
-        .info-highlight {
-            color: #ffcc66 !important;
-        }
-
-        .separator {
-            height: 1px;
-            background: var(--border);
-            margin: 2px 0;
-        }
-
-        @media (max-width: 820px) {
-            .container {
-                flex-direction: column;
-            }
-
-            .main-display {
-                min-width: 0;
-            }
-
-            .control-panel {
-                position: static;
-                min-width: 0;
-            }
-
-            #patternCanvas {
-                height: 220px;
-            }
-
-            #curveCanvas {
-                height: 140px;
-            }
-
-            #decomposeCanvas {
-                height: 180px;
-            }
-        }
-    </style>
+    @media(max-width:900px){
+        .app{flex-direction:column}
+        .panel{position:static;max-height:none;flex:1 1 auto;width:100%}
+        #scene3d{height:340px}
+        .view-toggle{top:6px;right:6px}
+        .view-btn{padding:4px 10px;font-size:.65rem}
+    }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="main-display">
-            <div class="canvas-card">
-                <canvas id="patternCanvas"></canvas>
-            </div>
-
-            <div class="canvas-card" id="curveCard">
-                <canvas id="curveCanvas"></canvas>
-            </div>
-
-            <div class="canvas-card" id="decomposeCard">
-                <div class="canvas-title">分解曲线独立控制开关</div>
-                <div class="decompose-check-wrap">
-                    <label><input type="checkbox" id="chkInter" checked>🔵多光束干涉(蓝虚线)</label>
-                    <label><input type="checkbox" id="chkDiff" checked>🔴单缝衍射包络(红虚线)</label>
-                    <label><input type="checkbox" id="chkTotal" checked>🟣总衍射光强(紫实线)</label>
-                </div>
-                <canvas id="decomposeCanvas"></canvas>
+<div class="app">
+    <div class="left-col">
+        <div class="card">
+            <canvas id="scene3d"></canvas>
+            <div class="overlay-hint">拖动旋转视角 · 滚轮缩放</div>
+            <div class="view-toggle">
+                <button id="viewOverview" class="view-btn active">全景视角</button>
+                <button id="viewScreen"   class="view-btn">聚焦光屏</button>
             </div>
         </div>
-
-        <div class="control-panel" id="controlPanel">
-            <h2>光栅衍射模拟</h2>
-            <div class="subtitle">可调参数控制</div>
-            <div class="separator"></div>
-
-            <div class="control-group">
-                <label>光照模式</label>
-                <div class="mode-toggle" id="modeToggle">
-                    <button class="mode-btn active" data-mode="mono">🔵 单色光</button>
-                    <button class="mode-btn mercury-active" data-mode="mercury">🌡️ 汞灯</button>
-                    <button class="mode-btn sun-active" data-mode="sun">☀️ 太阳光谱</button>
-                </div>
-            </div>
-            <div class="separator"></div>
-
-            <div class="control-group">
-                <label>狭缝个数 <span class="val" id="valN">3</span></label>
-                <input type="range" id="sliderN" min="1" max="100" value="3" step="1">
-            </div>
-            <div class="control-group">
-                <label>光栅常数 d <span><span class="val" id="valD">2000</span><span class="unit">nm</span></span></label>
-                <input type="range" id="sliderD" min="500" max="10000" value="2000" step="10">
-            </div>
-            <div class="control-group">
-                <label>光栅缝比 d/a <span class="val" id="valRatio">3.33</span></label>
-                <input type="range" id="sliderRatio" min="1.05" max="20" value="3.33" step="0.05">
-            </div>
-            <div class="control-group" id="wavelengthGroup">
-                <label>波长 λ <span><span class="val" id="valLambda">550</span><span class="unit">nm</span></span></label>
-                <input type="range" id="sliderLambda" min="380" max="780" value="550" step="1">
-            </div>
-            <div class="control-group">
-                <label>左边界 sinθ(min) <span class="val" id="valSinMin">-0.45</span></label>
-                <input type="range" id="sliderSinMin" min="-0.8" max="0.8" value="-0.45" step="0.01">
-            </div>
-            <div class="control-group">
-                <label>右边界 sinθ(max) <span class="val" id="valSinMax">0.45</span></label>
-                <input type="range" id="sliderSinMax" min="-0.8" max="0.8" value="0.45" step="0.01">
-            </div>
-
-            <div class="separator"></div>
-            <div class="scan-box">
-                <label style="font-weight:bold; margin-bottom:6px; display:block;">⚙️ 参数自动扫描</label>
-                <select class="scan-select" id="scanTarget">
-                    <option value="N">狭缝个数 N</option>
-                    <option value="d">光栅常数 d (nm)</option>
-                    <option value="ratio">缝比 d/a</option>
-                    <option value="lambda">波长 λ (nm)</option>
-                </select>
-                <div class="scan-row">
-                    <label>起始值</label>
-                    <input type="number" id="scanStart" value="3">
-                </div>
-                <div class="scan-row">
-                    <label>终止值</label>
-                    <input type="number" id="scanEnd" value="30">
-                </div>
-                <div class="scan-row">
-                    <label>扫描步长</label>
-                    <input type="number" id="scanStep" value="0.2" step="0.01">
-                </div>
-                <div class="scan-row">
-                    <label>刷新间隔(ms)</label>
-                    <input type="number" id="scanDelay" value="40" min="10">
-                </div>
-                <div class="scan-reverse-row">
-                    <input type="checkbox" id="scanReverse">
-                    <label for="scanReverse">反向扫描（终点→起点）</label>
-                </div>
-                <div class="scan-buttons">
-                    <button class="scan-btn" id="startScan">开始扫描</button>
-                    <button class="scan-btn" id="stopScan">停止扫描</button>
-                </div>
-            </div>
-            <div class="separator"></div>
-
-            <div class="info-row">
-                <span>缝宽 a</span>
-                <span class="info-val" id="infoA">600 nm</span>
-            </div>
-            <div class="info-row">
-                <span>第1级主极大 sinθ₁</span>
-                <span class="info-val" id="infoSinTheta1">0.275</span>
-            </div>
-            <div class="info-row">
-                <span>可见最高级次 m</span>
-                <span class="info-val" id="infoOrders">±1</span>
-            </div>
-            <div class="info-row">
-                <span>缺级情况</span>
-                <span class="info-val info-highlight" id="infoMissing">无缺级</span>
-            </div>
+        <div class="card">
+            <div class="card-title">衍射图样（光屏二维展开）</div>
+            <canvas id="patternCanvas"></canvas>
+        </div>
+        <div class="card">
+            <div class="card-title">光强分布曲线 I/I₀</div>
+            <canvas id="curveCanvas"></canvas>
         </div>
     </div>
 
-    <script>
-        (function() {
-            const patternCanvas = document.getElementById('patternCanvas');
-            const patternCtx = patternCanvas.getContext('2d');
-            const curveCanvas = document.getElementById('curveCanvas');
-            const curveCtx = curveCanvas.getContext('2d');
-            const curveCard = document.getElementById('curveCard');
-            const decomposeCanvas = document.getElementById('decomposeCanvas');
-            const decomposeCtx = decomposeCanvas.getContext('2d');
-            const decomposeCard = document.getElementById('decomposeCard');
+    <div class="panel">
+        <h2>光栅衍射 3D 模拟</h2>
+        <div class="subtitle">光源 → 准直透镜 → 光栅 → 聚焦透镜 → 光屏</div>
+        <div class="separator"></div>
 
-            const sliderN = document.getElementById('sliderN');
-            const sliderD = document.getElementById('sliderD');
-            const sliderRatio = document.getElementById('sliderRatio');
-            const sliderLambda = document.getElementById('sliderLambda');
-            const modeBtns = document.querySelectorAll('.mode-btn');
-            const wavelengthGroup = document.getElementById('wavelengthGroup');
-            const sliderSinMin = document.getElementById('sliderSinMin');
-            const sliderSinMax = document.getElementById('sliderSinMax');
+        <div class="control-group">
+            <label>光栅类型</label>
+            <div class="mode-toggle" id="gratingTypeToggle">
+                <button class="mode-btn trans-active active" data-gtype="transmission">🔆 透射光栅</button>
+                <button class="mode-btn refl-active" data-gtype="reflection">🪞 反射光栅</button>
+            </div>
+        </div>
+        <div class="separator"></div>
 
-            const valN = document.getElementById('valN');
-            const valD = document.getElementById('valD');
-            const valRatio = document.getElementById('valRatio');
-            const valLambda = document.getElementById('valLambda');
-            const valSinMin = document.getElementById('valSinMin');
-            const valSinMax = document.getElementById('valSinMax');
-            const infoA = document.getElementById('infoA');
-            const infoSinTheta1 = document.getElementById('infoSinTheta1');
-            const infoOrders = document.getElementById('infoOrders');
-            const infoMissing = document.getElementById('infoMissing');
+        <div class="control-group">
+            <label>光照模式</label>
+            <div class="mode-toggle" id="modeToggle">
+                <button class="mode-btn active" data-mode="mono">🔵 单色光</button>
+                <button class="mode-btn white-active" data-mode="white">🌈 白光</button>
+                <button class="mode-btn mercury-active" data-mode="mercury">🌡️ 汞灯</button>
+                <button class="mode-btn sun-active" data-mode="sun">☀️ 太阳光谱</button>
+            </div>
+        </div>
+        <div class="separator"></div>
 
-            const chkInter = document.getElementById('chkInter');
-            const chkDiff = document.getElementById('chkDiff');
-            const chkTotal = document.getElementById('chkTotal');
+        <div class="control-group" id="wavelengthGroup">
+            <label>波长 λ <span><span class="val" id="valLambda">550</span><span class="unit">nm</span></span></label>
+            <input type="range" id="sliderLambda" min="380" max="780" value="550" step="1">
+        </div>
 
-            const scanTarget = document.getElementById('scanTarget');
-            const scanStart = document.getElementById('scanStart');
-            const scanEnd = document.getElementById('scanEnd');
-            const scanStep = document.getElementById('scanStep');
-            const scanDelay = document.getElementById('scanDelay');
-            const scanReverse = document.getElementById('scanReverse');
-            const startScanBtn = document.getElementById('startScan');
-            const stopScanBtn = document.getElementById('stopScan');
+        <div class="control-group">
+            <label>狭缝个数 N <span class="val" id="valN">3</span></label>
+            <input type="range" id="sliderN" min="1" max="100" value="3" step="1">
+        </div>
 
-            let N = Number(sliderN.value);
-            let d = Number(sliderD.value);
-            let ratio = Number(sliderRatio.value);
-            let lambda = Number(sliderLambda.value);
-            let mode = 'mono';
-            let sinThetaMin = Number(sliderSinMin.value);
-            let sinThetaMax = Number(sliderSinMax.value);
+        <div class="control-group">
+            <label>光栅常数 d <span><span class="val" id="valD">2000</span><span class="unit">nm</span></span></label>
+            <input type="range" id="sliderD" min="500" max="10000" value="2000" step="10">
+        </div>
 
-            let renderPending = false;
-            let resizeTimer = null;
-            const spectrumCache = {
-                mercury: { list: [], colors: [] },
-                sun: { list: [], colors: [] }
-            };
+        <div class="control-group">
+            <label>光栅缝比 d/a <span class="val" id="valRatio">3.33</span></label>
+            <input type="range" id="sliderRatio" min="1.05" max="20" value="3.33" step="0.05">
+        </div>
 
-            let scanTimer = null;
-            let scanRunning = false;
-            let currentScanVal = 0;
-            let stepSign = 1;
+        <div class="separator"></div>
 
-            const mercurySpectrumRaw = [
-                { wl: 365.0, intensity: 0.8 },
-                { wl: 404.7, intensity: 1.0 },
-                { wl: 435.8, intensity: 1.0 },
-                { wl: 546.1, intensity: 1.0 },
-                { wl: 577.0, intensity: 0.9 },
-                { wl: 579.1, intensity: 0.9 }
-            ];
+        <div class="control-group">
+            <label>光栅俯仰角 <span class="tilt-tag">前后倾斜</span>
+                <span><span class="val" id="valPitch">0.0</span><span class="unit">°</span></span></label>
+            <input type="range" id="sliderPitch" min="-30" max="30" value="0" step="0.5">
+        </div>
 
-            function getSolarSpectrumRaw() {
-                const list = [];
-                const fraunhoferLines = [
-                    { wl: 430.8, depth: 0.8 },
-                    { wl: 486.1, depth: 0.9 },
-                    { wl: 517.3, depth: 0.7 },
-                    { wl: 589.0, depth: 0.95 },
-                    { wl: 589.6, depth: 0.95 },
-                    { wl: 656.3, depth: 0.9 },
-                    { wl: 687.0, depth: 0.7 }
-                ];
-                for (let wl = 380; wl <= 780; wl += 2) {
-                    let baseIntensity = 1.0;
-                    if (wl < 450) baseIntensity = 0.2 + (wl - 380) / 350 * 0.8;
-                    if (wl > 650) baseIntensity = 1.0 - (wl - 650) / 130 * 0.75;
-                    fraunhoferLines.forEach(line => {
-                        const delta = Math.abs(wl - line.wl);
-                        if (delta < 4) {
-                            const fall = 1 - delta / 4;
-                            baseIntensity *= 1 - line.depth * fall;
-                        }
-                    });
-                    list.push({ wl, intensity: baseIntensity });
+        <div class="control-group">
+            <label>光栅左右倾角 <span class="tilt-tag">水平偏转</span>
+                <span><span class="val" id="valYaw">0.0</span><span class="unit">°</span></span></label>
+            <input type="range" id="sliderYaw" min="-30" max="30" value="0" step="0.5">
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="control-group">
+            <label>左边界 sinθ<sub>min</sub> <span class="val" id="valSinMin">-0.55</span></label>
+            <input type="range" id="sliderSinMin" min="-0.8" max="0.8" value="-0.55" step="0.01">
+        </div>
+
+        <div class="control-group">
+            <label>右边界 sinθ<sub>max</sub> <span class="val" id="valSinMax">0.55</span></label>
+            <input type="range" id="sliderSinMax" min="-0.8" max="0.8" value="0.55" step="0.01">
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="info-row"><span>缝宽 a</span><span class="info-val" id="infoA">600 nm</span></div>
+        <div class="info-row"><span>第 1 级主极大 sinθ₁</span><span class="info-val" id="infoSinTheta1">0.275</span></div>
+        <div class="info-row"><span>可见最高级次 m</span><span class="info-val" id="infoOrders">±3</span></div>
+        <div class="info-row"><span>缺级情况</span><span class="info-val info-highlight" id="infoMissing">±3</span></div>
+        <div class="info-row"><span>光栅法线偏角</span><span class="info-val" id="infoNormal">0.0°</span></div>
+        <div class="info-row"><span>光屏可见级次</span><span class="info-val" id="infoCollected">-</span></div>
+    </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ================================================================
+   一、全局参数
+   ================================================================ */
+const F1 = 25, F2 = 40;
+const LENS_R = 40, BEAM_R = 12, GRAT_HALF = 16;
+const SCR_W = 110, SCR_H = 70;
+
+const state = {
+    N: 3, d: 2000, ratio: 3.33, lambda: 550,
+    mode: 'mono', pitch: 0, yaw: 0,
+    sinMin: -0.55, sinMax: 0.55,
+    gratingType: 'transmission'
+};
+
+/* 布局 */
+const LAYOUT = {
+    transmission: {
+        src:  { x: -70, y: 0, z: 0 },
+        l1:   { x: -45, y: 0, z: 0 },
+        grat: { x: 0,   y: 0, z: 0 },
+        l2:   { x: 50,  y: 0, z: 0 },
+        scr:  { x: 90,  y: 0, z: 0 },
+        baseYaw: 0,
+        screenRotY: Math.PI / 2,
+        l2Normal: new THREE.Vector3(1, 0, 0),
+        l2RotY: 0,
+        camOverview: { theta: 0.22, phi: 0.40, dist: 195, tx: 8, ty: 0, tz: 0 },
+        camScreen:   { theta: 0.16, phi: 0.20, dist: 68,  tx: 82, ty: 0, tz: 0 }
+    },
+    reflection: {
+        src:  { x: -70, y: 0, z: 0 },
+        l1:   { x: -45, y: 0, z: 0 },
+        grat: { x: 0,   y: 0, z: 0 },
+        l2:   { x: 0,   y: 0, z: 48 },
+        scr:  { x: 0,   y: 0, z: 88 },
+        baseYaw: Math.PI / 4,
+        screenRotY: 0,
+        l2Normal: new THREE.Vector3(0, 0, 1),
+        l2RotY: -Math.PI / 2,
+        camOverview: { theta: 0.80, phi: 0.50, dist: 210, tx: -5, ty: 0, tz: 45 },
+        camScreen:   { theta: 0.00, phi: 0.05, dist: 65,  tx: 0,   ty: 0, tz: 82 }
+    }
+};
+
+function getLayout() { return LAYOUT[state.gratingType]; }
+
+/* ================================================================
+   二、3D 场景
+   ================================================================ */
+const sceneCanvas = document.getElementById('scene3d');
+const renderer = new THREE.WebGLRenderer({ canvas: sceneCanvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x07070f);
+const camera = new THREE.PerspectiveCamera(52, 1, 0.5, 4000);
+
+let currentView = 'overview';
+const cam = { theta: 0.22, phi: 0.40, dist: 195, target: new THREE.Vector3(8, 0, 0) };
+
+function applyCamera() {
+    const { theta, phi, dist, target } = cam;
+    camera.position.set(
+        target.x + dist * Math.cos(phi) * Math.sin(theta),
+        target.y + dist * Math.sin(phi),
+        target.z + dist * Math.cos(phi) * Math.cos(theta)
+    );
+    camera.lookAt(target);
+}
+
+function setView(name) {
+    const L = getLayout();
+    const v = (name === 'screen') ? L.camScreen : L.camOverview;
+    cam.theta = v.theta; cam.phi = v.phi; cam.dist = v.dist;
+    cam.target.set(v.tx, v.ty, v.tz);
+    applyCamera();
+    needsRender = true;
+    currentView = name;
+    document.getElementById('viewOverview').classList.toggle('active', name === 'overview');
+    document.getElementById('viewScreen').classList.toggle('active', name === 'screen');
+}
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.58));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.3);
+keyLight.position.set(60, 110, 90); scene.add(keyLight);
+const rimLight = new THREE.DirectionalLight(0x5588ff, 0.7);
+rimLight.position.set(-80, -40, -70); scene.add(rimLight);
+const fillLight = new THREE.DirectionalLight(0xff99cc, 0.25);
+fillLight.position.set(-40, 20, 90); scene.add(fillLight);
+
+const grid = new THREE.GridHelper(380, 38, 0x1d3050, 0x111c2e);
+grid.position.set(0, -28, 30); scene.add(grid);
+
+const railMat = new THREE.MeshStandardMaterial({ color: 0x18243a, metalness: .75, roughness: .45 });
+const rail = new THREE.Mesh(new THREE.BoxGeometry(200, 2, 9), railMat);
+rail.position.set(8, -26, 0); scene.add(rail);
+
+const metalMat = new THREE.MeshStandardMaterial({ color: 0x33445e, metalness: .85, roughness: .35 });
+const postMat  = new THREE.MeshStandardMaterial({ color: 0x24334c, metalness: .7, roughness: .5 });
+
+/* 光源 */
+const srcGroup = new THREE.Group();
+{
+    const bodyGeo = new THREE.CylinderGeometry(3.6, 3.6, 14, 28);
+    bodyGeo.rotateZ(-Math.PI / 2);
+    srcGroup.add(new THREE.Mesh(bodyGeo, metalMat));
+    const noseGeo = new THREE.CylinderGeometry(2.2, 3.6, 5, 24);
+    noseGeo.rotateZ(-Math.PI / 2);
+    const nose = new THREE.Mesh(noseGeo, metalMat);
+    nose.position.x = 9; srcGroup.add(nose);
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(1.9, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    glow.position.x = 11.5; srcGroup.add(glow);
+    const halo = new THREE.Mesh(new THREE.SphereGeometry(4.5, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .12,
+                                      blending: THREE.AdditiveBlending, depthWrite: false }));
+    halo.position.x = 11.5; srcGroup.add(halo);
+}
+
+function makePost(topY) {
+    const grp = new THREE.Group();
+    const h = topY + 26;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(1.6, h, 1.6), postMat);
+    post.position.set(0, -26 + h / 2, 0);
+    grp.add(post);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(7, 1.2, 7), postMat);
+    base.position.set(0, -25.4, 0);
+    grp.add(base);
+    return grp;
+}
+
+/* 透镜 */
+const lensMat = new THREE.MeshPhysicalMaterial({
+    color: 0x9fdcff, transparent: true, opacity: .24,
+    roughness: .06, metalness: 0, side: THREE.DoubleSide, depthWrite: false,
+    clearcoat: 1, clearcoatRoughness: .05
+});
+const lensRimMat = new THREE.MeshBasicMaterial({ color: 0x62c0ff, transparent: true, opacity: .55 });
+
+function makeLens() {
+    const grp = new THREE.Group();
+    const g = new THREE.SphereGeometry(LENS_R, 44, 26);
+    g.scale(0.16, 1, 1); grp.add(new THREE.Mesh(g, lensMat));
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(LENS_R, 0.5, 8, 64), lensRimMat);
+    rim.rotation.y = Math.PI / 2; grp.add(rim);
+    return grp;
+}
+
+const lens1Grp = makeLens();
+const lens2Grp = makeLens();
+
+/* 光栅 */
+const gratingPivot = new THREE.Group();
+const gratingTilt  = new THREE.Group();
+gratingPivot.add(gratingTilt);
+
+function makeGratingTexture() {
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 64;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#081120'; ctx.fillRect(0, 0, c.width, c.height);
+    for (let x = 0; x < c.width; x += 10) {
+        ctx.fillStyle = '#2f6ea8'; ctx.fillRect(x, 0, 4, c.height);
+        ctx.fillStyle = '#8fd4ff'; ctx.fillRect(x + 4, 0, 1.5, c.height);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 8;
+    return tex;
+}
+
+{
+    const G = GRAT_HALF;
+    const tex = makeGratingTexture();
+    const gratGeo = new THREE.PlaneGeometry(G * 2, G * 2);
+    const gratMat = new THREE.MeshStandardMaterial({
+        map: tex, emissiveMap: tex, emissive: 0x2a6ba8, emissiveIntensity: .9,
+        side: THREE.DoubleSide, roughness: .5, metalness: .25,
+        transparent: true, opacity: .96
+    });
+    const gratMesh = new THREE.Mesh(gratGeo, gratMat);
+    gratMesh.rotation.y = Math.PI / 2; gratingTilt.add(gratMesh);
+
+    const frameMat = new THREE.MeshStandardMaterial({
+        color: 0x5a7ba8, metalness: .85, roughness: .3,
+        emissive: 0x1a2a44, emissiveIntensity: 0.5
+    });
+    const fT = 1.4, fD = 1.8;
+    const barH = new THREE.BoxGeometry(fD, fT, G * 2 + fT * 2);
+    const barV = new THREE.BoxGeometry(fD, G * 2, fT);
+    const topBar = new THREE.Mesh(barH, frameMat); topBar.position.set(0, G + fT / 2, 0); gratingTilt.add(topBar);
+    const botBar = new THREE.Mesh(barH, frameMat); botBar.position.set(0, -G - fT / 2, 0); gratingTilt.add(botBar);
+    const leftBar = new THREE.Mesh(barV, frameMat); leftBar.position.set(0, 0, -G - fT / 2); gratingTilt.add(leftBar);
+    const rightBar = new THREE.Mesh(barV, frameMat); rightBar.position.set(0, 0, G + fT / 2); gratingTilt.add(rightBar);
+
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(gratGeo),
+        new THREE.LineBasicMaterial({ color: 0x4da6ff, transparent: true, opacity: .85 }));
+    edge.rotation.y = Math.PI / 2; gratingTilt.add(edge);
+
+    const nrmLen = 22;
+    const nrmMat = new THREE.MeshBasicMaterial({ color: 0xffcc55, transparent: true, opacity: 0.8 });
+    const nrmCyl = new THREE.CylinderGeometry(0.4, 0.4, nrmLen, 8);
+    nrmCyl.rotateZ(-Math.PI / 2);
+    const nrmRod = new THREE.Mesh(nrmCyl, nrmMat);
+    nrmRod.position.x = nrmLen / 2; gratingTilt.add(nrmRod);
+    const coneGeo = new THREE.ConeGeometry(1.5, 4, 12);
+    coneGeo.rotateZ(-Math.PI / 2);
+    const cone = new THREE.Mesh(coneGeo, nrmMat);
+    cone.position.x = nrmLen + 2; gratingTilt.add(cone);
+    const backCyl = new THREE.CylinderGeometry(0.25, 0.25, 8, 6);
+    backCyl.rotateZ(-Math.PI / 2);
+    const backRod = new THREE.Mesh(backCyl,
+        new THREE.MeshBasicMaterial({ color: 0xffcc55, transparent: true, opacity: 0.3 }));
+    backRod.position.x = -4; gratingTilt.add(backRod);
+
+    const pivotBall = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 8),
+        new THREE.MeshBasicMaterial({ color: 0x4da6ff, transparent: true, opacity: 0.9 }));
+    gratingTilt.add(pivotBall);
+
+    const yAxisLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, -G - 5, 0), new THREE.Vector3(0, G + 5, 0)
+        ]),
+        new THREE.LineDashedMaterial({
+            color: 0x8866ff, dashSize: 1.6, gapSize: 1.6,
+            transparent: true, opacity: 0.45
+        })
+    );
+    yAxisLine.computeLineDistances(); gratingPivot.add(yAxisLine);
+
+    const zAxisLine = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, -G - 5), new THREE.Vector3(0, 0, G + 5)
+        ]),
+        new THREE.LineDashedMaterial({
+            color: 0xff6b9d, dashSize: 1.6, gapSize: 1.6,
+            transparent: true, opacity: 0.45
+        })
+    );
+    zAxisLine.computeLineDistances(); gratingPivot.add(zAxisLine);
+}
+
+/* 光屏 */
+const screenCanvas = document.createElement('canvas');
+screenCanvas.width = 1024; screenCanvas.height = 640;
+const screenCtx = screenCanvas.getContext('2d');
+const screenTexture = new THREE.CanvasTexture(screenCanvas);
+screenTexture.colorSpace = THREE.SRGBColorSpace;
+screenTexture.minFilter = THREE.LinearFilter;
+screenTexture.magFilter = THREE.LinearFilter;
+screenTexture.generateMipmaps = false;
+
+const scrGeo = new THREE.PlaneGeometry(SCR_W, SCR_H);
+const scrMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0e16, emissive: 0xffffff, emissiveMap: screenTexture,
+    emissiveIntensity: 1.2, roughness: .95, metalness: .05, side: THREE.DoubleSide
+});
+const screenMesh = new THREE.Mesh(scrGeo, scrMat);
+const screenFrame = new THREE.LineSegments(new THREE.EdgesGeometry(scrGeo),
+    new THREE.LineBasicMaterial({ color: 0x3a5c8a }));
+
+const postSrc = makePost(0);
+const postL1  = makePost(-LENS_R);
+const postG   = makePost(-GRAT_HALF - 1.5);
+const postL2  = makePost(-LENS_R);
+const postScr = makePost(-SCR_H / 2);
+
+scene.add(srcGroup, postSrc, lens1Grp, postL1, gratingPivot, postG,
+          lens2Grp, postL2, screenMesh, screenFrame, postScr);
+
+function applyLayout() {
+    const L = getLayout();
+
+    srcGroup.position.set(L.src.x, L.src.y, L.src.z);
+    lens1Grp.position.set(L.l1.x, L.l1.y, L.l1.z);
+    lens2Grp.position.set(L.l2.x, L.l2.y, L.l2.z);
+    gratingPivot.position.set(L.grat.x, L.grat.y, L.grat.z);
+    lens2Grp.rotation.set(0, L.l2RotY, 0);
+
+    screenMesh.position.set(L.scr.x, L.scr.y, L.scr.z);
+    screenMesh.rotation.set(0, L.screenRotY, 0);
+    screenFrame.position.copy(screenMesh.position);
+    screenFrame.rotation.copy(screenMesh.rotation);
+
+    postSrc.position.set(L.src.x, 0, L.src.z);
+    postL1.position.set(L.l1.x, 0, L.l1.z);
+    postG.position.set(L.grat.x, 0, L.grat.z);
+    postL2.position.set(L.l2.x, 0, L.l2.z);
+    postScr.position.set(L.scr.x, 0, L.scr.z);
+
+    updateGratingTransform();
+    setView(currentView);
+}
+
+function updateGratingTransform() {
+    const L = getLayout();
+    gratingPivot.rotation.y = L.baseYaw + state.yaw * Math.PI / 180;
+    gratingTilt.rotation.z  = state.pitch * Math.PI / 180;
+}
+
+function getGratingGeometry() {
+    const L = getLayout();
+    const yawR = state.yaw * Math.PI / 180;
+    const pitchR = state.pitch * Math.PI / 180;
+
+    const Ry = new THREE.Matrix4().makeRotationY(L.baseYaw + yawR);
+    const Rz = new THREE.Matrix4().makeRotationZ(pitchR);
+    const R = new THREE.Matrix4().multiplyMatrices(Ry, Rz);
+
+    const nvec = new THREE.Vector3(1, 0, 0).applyMatrix4(R).normalize();
+    const gvec = new THREE.Vector3(0, 0, 1).applyMatrix4(R).normalize();
+    const kin  = new THREE.Vector3(1, 0, 0);
+    const kinTan = kin.clone().sub(nvec.clone().multiplyScalar(kin.dot(nvec)));
+    return { nvec, gvec, kinTan, yawR, pitchR };
+}
+
+/* ================================================================
+   三、动态光路
+   ================================================================ */
+const dynGroup = new THREE.Group();
+scene.add(dynGroup);
+
+function clearDynamic() {
+    for (let i = dynGroup.children.length - 1; i >= 0; i--) {
+        const c = dynGroup.children[i];
+        dynGroup.remove(c);
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) c.material.dispose();
+    }
+}
+
+function addLine(pts, color, opacity) {
+    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({
+        color: color, transparent: true, opacity: opacity,
+        blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    dynGroup.add(new THREE.Line(geo, mat));
+}
+
+function wlToRGB(wl) {
+    let r = 0, g = 0, b = 0;
+    if (wl >= 380 && wl < 440)      { r = -(wl - 440) / 60; b = 1; }
+    else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50;  b = 1; }
+    else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
+    else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
+    else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
+    else if (wl >= 645 && wl <= 780){ r = 1; }
+    let f = 1;
+    if (wl < 420) f = 0.3 + 0.7 * (wl - 380) / 40;
+    if (wl > 700) f = 0.3 + 0.7 * (780 - wl) / 80;
+    return {
+        r: Math.max(0, Math.min(1, r * f)),
+        g: Math.max(0, Math.min(1, g * f)),
+        b: Math.max(0, Math.min(1, b * f))
+    };
+}
+
+function getSpectrum() {
+    let list;
+    if (state.mode === 'mono') {
+        list = [{ wl: state.lambda, w: 1, color: wlToRGB(state.lambda) }];
+    } else if (state.mode === 'white') {
+        list = [];
+        for (let i = 0; i < 9; i++) {
+            const wl = 400 + i * 47;
+            list.push({ wl, w: 1, color: wlToRGB(wl) });
+        }
+    } else if (state.mode === 'mercury') {
+        list = [
+            { wl: 404.7, w: .80, color: wlToRGB(404.7) },
+            { wl: 435.8, w: 1.0, color: wlToRGB(435.8) },
+            { wl: 546.1, w: 1.0, color: wlToRGB(546.1) },
+            { wl: 577.0, w: .85, color: wlToRGB(577.0) },
+            { wl: 579.1, w: .85, color: wlToRGB(579.1) }
+        ];
+    } else {
+        list = [];
+        const fraunhofer = [430.8, 486.1, 517.3, 589.0, 589.6, 656.3, 687.0];
+        for (let i = 0; i < 12; i++) {
+            const wl = 400 + i * 33;
+            let w = 1;
+            for (const fl of fraunhofer) {
+                const diff = Math.abs(wl - fl);
+                if (diff < 6) w *= 1 - 0.8 * (1 - diff / 6);
+            }
+            if (wl < 430) w *= 0.7;
+            if (wl > 700) w *= 0.6;
+            list.push({ wl, w, color: wlToRGB(wl) });
+        }
+    }
+    let ar = 0, ag = 0, ab = 0;
+    list.forEach(s => { ar += s.color.r; ag += s.color.g; ab += s.color.b; });
+    const n = list.length;
+    return { list, n,
+        avgR: Math.max(ar / n, 1e-4),
+        avgG: Math.max(ag / n, 1e-4),
+        avgB: Math.max(ab / n, 1e-4) };
+}
+
+function calcDiffraction(m, wl, geom) {
+    const { nvec, gvec, kinTan } = geom;
+    const isTrans = (state.gratingType === 'transmission');
+    const v = m * wl / state.d;
+    const kt = kinTan.clone().addScaledVector(gvec, v);
+    const kt2 = kt.lengthSq();
+    if (kt2 >= 0.985 * 0.985) return null;
+    /* 透射光沿入射侧相反方向传播；反射光必须换到入射波矢的另一侧。 */
+    const incidentNormal = new THREE.Vector3(1, 0, 0).dot(nvec);
+    const kn = isTrans
+        ? Math.sign(incidentNormal || 1) * Math.sqrt(1 - kt2)
+        : -Math.sign(incidentNormal || 1) * Math.sqrt(1 - kt2);
+    const dir = kt.clone().addScaledVector(nvec, kn).normalize();
+    if (isTrans && dir.x < 0.02) return null;
+    if (!isTrans && dir.z < 0.02) return null;
+    return { dir };
+}
+
+function traceRay(origin, dir, l2Pos, l2Normal, F2val) {
+    const denom = dir.dot(l2Normal);
+    if (Math.abs(denom) < 1e-6) return null;
+    const t2 = new THREE.Vector3().subVectors(l2Pos, origin).dot(l2Normal) / denom;
+    if (t2 <= 0) return null;
+    const pL = origin.clone().addScaledVector(dir, t2);
+    const off = pL.clone().sub(l2Pos);
+    const rOff = off.clone().sub(l2Normal.clone().multiplyScalar(off.dot(l2Normal))).length();
+    const collected = rOff <= LENS_R;
+    const pFoc = l2Pos.clone().addScaledVector(dir, F2val / denom);
+    return { pL, pFoc, collected };
+}
+
+function rebuildPaths() {
+    clearDynamic();
+    const geom = getGratingGeometry();
+    const spec = getSpectrum();
+    const L = getLayout();
+
+    const inColor = (state.mode === 'mono')
+        ? new THREE.Color(wlToRGB(state.lambda).r, wlToRGB(state.lambda).g, wlToRGB(state.lambda).b)
+        : new THREE.Color(0xffffff);
+
+    const srcPos = new THREE.Vector3(L.src.x, L.src.y, L.src.z);
+    const l1Pos  = new THREE.Vector3(L.l1.x, L.l1.y, L.l1.z);
+    const l2Pos  = new THREE.Vector3(L.l2.x, L.l2.y, L.l2.z);
+    const scrPos = new THREE.Vector3(L.scr.x, L.scr.y, L.scr.z);
+
+    const AZ = 12;
+    const n = geom.nvec;
+    for (let i = 0; i < AZ; i++) {
+        const a = i * 2 * Math.PI / AZ;
+        const y = BEAM_R * Math.cos(a);
+        const z = BEAM_R * Math.sin(a);
+        let gx = L.grat.x, gy = y, gz = z;
+        if (Math.abs(n.x) > 1e-6) {
+            const t = (L.grat.x - L.l1.x) - (n.y * y + n.z * z) / n.x;
+            gx = L.l1.x + t;
+        }
+        addLine([srcPos.clone(), l1Pos.clone(), new THREE.Vector3(gx, gy, gz)], inColor, 0.28);
+    }
+
+    const vMax = 0.985;
+    const mMax = Math.min(30, Math.floor(vMax * state.d / state.lambda));
+    let collectedCount = 0;
+    const collectedSet = new Set();
+
+    spec.list.forEach(sp => {
+        const col = new THREE.Color(sp.color.r, sp.color.g, sp.color.b);
+        const op  = (state.mode === 'mono') ? 0.55 : 0.35;
+
+        for (let m = -mMax; m <= mMax; m++) {
+            const res = calcDiffraction(m, sp.wl, geom);
+            if (!res) continue;
+            const { dir } = res;
+
+            const startPts = (state.mode === 'mono')
+                ? [
+                    new THREE.Vector3(L.grat.x, L.grat.y + BEAM_R * 0.5, L.grat.z),
+                    new THREE.Vector3(L.grat.x, L.grat.y - BEAM_R * 0.5, L.grat.z),
+                    new THREE.Vector3(L.grat.x, L.grat.y, L.grat.z + BEAM_R * 0.5),
+                    new THREE.Vector3(L.grat.x, L.grat.y, L.grat.z - BEAM_R * 0.5)
+                  ]
+                : [new THREE.Vector3(L.grat.x, L.grat.y, L.grat.z)];
+
+            startPts.forEach(origin => {
+                const tr = traceRay(origin, dir, l2Pos, L.l2Normal, F2);
+                if (!tr) return;
+                if (tr.collected) {
+                    collectedCount++;
+                    if (state.mode === 'mono') collectedSet.add(m);
                 }
-                return list;
-            }
-
-            function buildSpectrumCache() {
-                spectrumCache.mercury.list = mercurySpectrumRaw;
-                spectrumCache.mercury.colors = mercurySpectrumRaw.map(l => wavelengthToRGB(l.wl));
-                const solar = getSolarSpectrumRaw();
-                spectrumCache.sun.list = solar;
-                spectrumCache.sun.colors = solar.map(l => wavelengthToRGB(l.wl));
-            }
-
-            function wavelengthToRGB(wl) {
-                let r = 0, g = 0, b = 0;
-                if (wl >= 380 && wl < 440) { r = -(wl - 440) / 60; b = 1; }
-                else if (wl >= 440 && wl < 490) { g = (wl - 440) / 50; b = 1; }
-                else if (wl >= 490 && wl < 510) { g = 1; b = -(wl - 510) / 20; }
-                else if (wl >= 510 && wl < 580) { r = (wl - 510) / 70; g = 1; }
-                else if (wl >= 580 && wl < 645) { r = 1; g = -(wl - 645) / 65; }
-                else if (wl >= 645 && wl <= 780) { r = 1; }
-                let factor = 1;
-                if (wl < 420) factor = 0.3 + 0.7 * (wl - 380) / 40;
-                if (wl > 700) factor = 0.3 + 0.7 * (780 - wl) / 80;
-                return { r: Math.max(0, Math.min(1, r * factor)), g: Math.max(0, Math.min(1, g * factor)), b: Math.max(0, Math.min(1, b * factor)) };
-            }
-
-            function sinc(x) { return Math.abs(x) < 1e-9 ? 1 : Math.sin(x) / x; }
-            function interferenceFactor(gamma, Nval) {
-                if (Nval === 1) return 1;
-                if (Math.abs(gamma) < 1e-10) return Nval * Nval;
-                const num = Math.sin(Nval * gamma);
-                const den = Math.sin(gamma);
-                const ad = Math.abs(den);
-                if (ad < 1e-13) return Nval * Nval;
-                return (num * num) / (den * den);
-            }
-            function calcIntensity(theta, n, dVal, ratioA, lam) {
-                const a = dVal / ratioA;
-                const gamma = Math.PI * dVal * theta / lam;
-                const beta = Math.PI * a * theta / lam;
-                const sa = sinc(beta);
-                return sa * sa * interferenceFactor(gamma, n);
-            }
-            function calcInterI(theta, n, dVal, lam) {
-                const gamma = Math.PI * dVal * theta / lam;
-                return interferenceFactor(gamma, n);
-            }
-            function calcDiffI(theta, dVal, ratioA, lam) {
-                const a = dVal / ratioA;
-                const beta = Math.PI * a * theta / lam;
-                return Math.pow(sinc(beta), 2);
-            }
-
-            function resizeCanvases() {
-                const pw = patternCanvas.clientWidth;
-                const ph = patternCanvas.clientHeight;
-                const cw = curveCanvas.clientWidth;
-                const ch = curveCanvas.clientHeight;
-                const dw = decomposeCanvas.clientWidth;
-                const dh = decomposeCanvas.clientHeight;
-                let change = false;
-                if (patternCanvas.width !== pw || patternCanvas.height !== ph) { patternCanvas.width = pw; patternCanvas.height = ph; change = true; }
-                if (curveCanvas.width !== cw || curveCanvas.height !== ch) { curveCanvas.width = cw; curveCanvas.height = ch; change = true; }
-                if (decomposeCanvas.width !== dw || decomposeCanvas.height !== dh) { decomposeCanvas.width = dw; decomposeCanvas.height = dh; change = true; }
-                return change;
-            }
-
-            function ixToTheta(ix, w) { return sinThetaMin + (sinThetaMax - sinThetaMin) * ix / (w - 1); }
-            function thetaToX(th, w) { return (th - sinThetaMin) / (sinThetaMax - sinThetaMin) * (w - 1); }
-
-            function requestDraw() {
-                if (renderPending) return;
-                renderPending = true;
-                requestAnimationFrame(() => { drawAll(); renderPending = false; });
-            }
-            function drawAll() {
-                resizeCanvases();
-                drawPattern();
-                drawCurve();
-                drawDecomposeCurve();
-            }
-
-            function drawPattern() {
-                const w = patternCanvas.width;
-                const h = patternCanvas.height;
-                const sqN = N * N;
-                const imgData = patternCtx.createImageData(w, h);
-                const cache = spectrumCache[mode];
-
-                if (mode === 'mono') {
-                    const rgb = wavelengthToRGB(lambda);
-                    for (let x = 0; x < w; x++) {
-                        const th = ixToTheta(x, w);
-                        const I = calcIntensity(th, N, d, ratio, lambda);
-                        const bright = Math.pow(Math.min(1, I / sqN), 0.55);
-                        const r = Math.round(rgb.r * bright * 255);
-                        const g = Math.round(rgb.g * bright * 255);
-                        const b = Math.round(rgb.b * bright * 255);
-                        const off = x * 4;
-                        for (let y = 0; y < h; y++) {
-                            const idx = y * w * 4 + off;
-                            imgData.data[idx] = r;
-                            imgData.data[idx + 1] = g;
-                            imgData.data[idx + 2] = b;
-                            imgData.data[idx + 3] = 255;
-                        }
-                    }
+                const pts = [origin.clone(), tr.pL.clone()];
+                if (tr.collected) {
+                    pts.push(tr.pFoc.clone());
                 } else {
-                    const list = cache.list;
-                    const colorList = cache.colors;
-                    const cnt = list.length;
-                    for (let x = 0; x < w; x++) {
-                        const th = ixToTheta(x, w);
-                        let tr = 0, tg = 0, tb = 0, maxC = 0;
-                        for (let i = 0; i < cnt; i++) {
-                            const l = list[i];
-                            const c = calcIntensity(th, N, d, ratio, l.wl) / sqN * l.intensity;
-                            maxC = Math.max(maxC, c);
-                            const clr = colorList[i];
-                            tr += clr.r * c;
-                            tg += clr.g * c;
-                            tb += clr.b * c;
-                        }
-                        const scale = maxC > 0 ? (cnt * 0.8) / maxC : cnt * 0.8;
-                        let r = Math.pow(Math.min(1, Math.max(0, tr / scale)), 0.8);
-                        let g = Math.pow(Math.min(1, Math.max(0, tg / scale)), 0.8);
-                        let b = Math.pow(Math.min(1, Math.max(0, tb / scale)), 0.8);
-                        const rr = Math.round(r * 255);
-                        const gg = Math.round(g * 255);
-                        const bb = Math.round(b * 255);
-                        const off = x * 4;
-                        for (let y = 0; y < h; y++) {
-                            const idx = y * w * 4 + off;
-                            imgData.data[idx] = rr;
-                            imgData.data[idx + 1] = gg;
-                            imgData.data[idx + 2] = bb;
-                            imgData.data[idx + 3] = 255;
-                        }
-                    }
+                    const t3 = new THREE.Vector3().subVectors(scrPos, origin).dot(L.l2Normal) / dir.dot(L.l2Normal);
+                    if (t3 > 0) pts.push(origin.clone().addScaledVector(dir, t3));
                 }
-                patternCtx.putImageData(imgData, 0, 0);
-                const midX = thetaToX(0, w);
-                patternCtx.strokeStyle = 'rgba(255,255,255,0.5)';
-                patternCtx.lineWidth = 1;
-                patternCtx.setLineDash([4,6]);
-                patternCtx.beginPath();
-                patternCtx.moveTo(midX, 0);
-                patternCtx.lineTo(midX, h);
-                patternCtx.stroke();
-                patternCtx.setLineDash([]);
-            }
-
-            // 第二幅曲线：边界拖动动态计算全部主峰，8000采样永久等高
-            function drawCurve() {
-                if (mode === 'sun') {
-                    curveCard.style.display = 'none';
-                    return;
-                }
-                curveCard.style.display = 'block';
-
-                const w = curveCanvas.width;
-                const h = curveCanvas.height;
-                const margin = 30;
-                const sqN = N * N;
-                curveCtx.fillStyle = '#0a0a14';
-                curveCtx.fillRect(0, 0, w, h);
-                curveCtx.strokeStyle = 'rgba(255,255,255,0.06)';
-                curveCtx.lineWidth = 1;
-                const gx = w / 10, gy = h / 8;
-                for (let i = 0; i <= 10; i++) { curveCtx.beginPath(); curveCtx.moveTo(i * gx, 0); curveCtx.lineTo(i * gx, h); curveCtx.stroke(); }
-                for (let i = 0; i <= 8; i++) { curveCtx.beginPath(); curveCtx.moveTo(0, i * gy); curveCtx.lineTo(w, i * gy); curveCtx.stroke(); }
-                curveCtx.strokeStyle = 'rgba(255,255,255,0.2)';
-                curveCtx.beginPath(); curveCtx.moveTo(0, h - 1); curveCtx.lineTo(w, h - 1); curveCtx.stroke();
-                const midX = thetaToX(0, w);
-                curveCtx.strokeStyle = 'rgba(255,255,255,0.15)';
-                curveCtx.setLineDash([3,5]);
-                curveCtx.beginPath(); curveCtx.moveTo(midX, 0); curveCtx.lineTo(midX, h); curveCtx.stroke();
-                curveCtx.setLineDash([]);
-
-                if (mode === 'mono') {
-                    const rgb = wavelengthToRGB(lambda);
-                    curveCtx.strokeStyle = `rgb(${Math.round(rgb.r*255)},${Math.round(rgb.g*255)},${Math.round(rgb.b*255)})`;
-                    curveCtx.lineWidth = 2;
-                    curveCtx.shadowColor = curveCtx.strokeStyle;
-                    curveCtx.shadowBlur = 4;
-
-                    const points = [];
-                    // 固定8000基础均匀采样
-                    const baseSamples = 8000;
-                    for (let s = 0; s <= baseSamples; s++) {
-                        const x = (w - 1) * s / baseSamples;
-                        const th = ixToTheta(x, w);
-                        const I = calcIntensity(th, N, d, ratio, lambda) / sqN;
-                        const py = h - margin - I * (h - 2 * margin);
-                        points.push({ x, py });
-                    }
-                    // 动态计算当前边界内所有k级主峰
-                    const maxKGlobal = Math.floor(d / lambda);
-                    const epsStep = Math.max(0.0001, (sinThetaMax - sinThetaMin) / 8000);
-                    for (let k = -maxKGlobal; k <= maxKGlobal; k++) {
-                        const thPeak = k * lambda / d;
-                        if (thPeak < sinThetaMin || thPeak > sinThetaMax) continue;
-                        const xPeak = thetaToX(thPeak, w);
-                        const IPeak = calcIntensity(thPeak, N, d, ratio, lambda) / sqN;
-                        const pyPeak = h - margin - IPeak * (h - 2 * margin);
-                        points.push({ x: xPeak, py: pyPeak });
-                        // 主峰左右辅助点，避免连线削顶
-                        const thLeft = thPeak - epsStep;
-                        if (thLeft >= sinThetaMin) {
-                            const xLeft = thetaToX(thLeft, w);
-                            const ILeft = calcIntensity(thLeft, N, d, ratio, lambda) / sqN;
-                            const pyLeft = h - margin - ILeft * (h - 2 * margin);
-                            points.push({ x: xLeft, py: pyLeft });
-                        }
-                        const thRight = thPeak + epsStep;
-                        if (thRight <= sinThetaMax) {
-                            const xRight = thetaToX(thRight, w);
-                            const IRight = calcIntensity(thRight, N, d, ratio, lambda) / sqN;
-                            const pyRight = h - margin - IRight * (h - 2 * margin);
-                            points.push({ x: xRight, py: pyRight });
-                        }
-                    }
-                    // 横坐标排序，保证连续曲线
-                    points.sort((a, b) => a.x - b.x);
-                    curveCtx.beginPath();
-                    let first = true;
-                    for (const p of points) {
-                        if (first) { curveCtx.moveTo(p.x, p.py); first = false; }
-                        else curveCtx.lineTo(p.x, p.py);
-                    }
-                    curveCtx.stroke();
-                    curveCtx.shadowBlur = 0;
-                } else if (mode === 'mercury') {
-                    const colors = [
-                        'rgba(100,100,255,0.9)','rgba(150,100,255,0.9)','rgba(80,180,255,0.9)',
-                        'rgba(80,255,120,0.9)','rgba(255,200,80,0.9)','rgba(255,180,80,0.9)'
-                    ];
-                    mercurySpectrumRaw.forEach((line, idx) => {
-                        curveCtx.strokeStyle = colors[idx];
-                        curveCtx.lineWidth = 1.8;
-                        curveCtx.beginPath();
-                        let first = true;
-                        const sampleCnt = 8000;
-                        for (let s=0;s<=sampleCnt;s++){
-                            const x = (w-1)*s/sampleCnt;
-                            const th = ixToTheta(x,w);
-                            const I = calcIntensity(th, N, d, ratio, line.wl) * line.intensity / sqN;
-                            const py = h - margin - I * (h - 2 * margin);
-                            if (first) { curveCtx.moveTo(x, py); first = false; } else curveCtx.lineTo(x, py);
-                        }
-                        curveCtx.stroke();
-                    });
-                }
-            }
-
-            // 第三幅分解干涉：边界拖动实时重算全部主峰，强制等高
-            function drawDecomposeCurve() {
-                if(mode !== 'mono'){
-                    decomposeCard.style.display = 'none';
-                    decomposeCtx.clearRect(0,0,decomposeCanvas.width,decomposeCanvas.height);
-                    return;
-                }
-                decomposeCard.style.display = 'block';
-                const w = decomposeCanvas.width;
-                const h = decomposeCanvas.height;
-                const padX=55,padTop=30,padBot=35;
-                const drawW = w - padX * 2;
-                const drawH = h - padTop - padBot;
-                const baseY = h - padBot;
-                const sqN = N * N;
-
-                decomposeCtx.fillStyle="#0a0a14";
-                decomposeCtx.fillRect(0,0,w,h);
-
-                decomposeCtx.strokeStyle="#8899bb";
-                decomposeCtx.lineWidth=1.5;
-                decomposeCtx.beginPath();
-                decomposeCtx.moveTo(padX,baseY);
-                decomposeCtx.lineTo(padX+drawW,baseY);
-                decomposeCtx.stroke();
-                decomposeCtx.beginPath();
-                decomposeCtx.moveTo(padX,padTop);
-                decomposeCtx.lineTo(padX,baseY);
-                decomposeCtx.stroke();
-
-                decomposeCtx.fillStyle="#8899bb";
-                decomposeCtx.font="12px Consolas";
-                decomposeCtx.fillText(`${sinThetaMin.toFixed(2)}`,padX-40,baseY+16);
-                decomposeCtx.fillText("0",padX+drawW/2-6,baseY+16);
-                decomposeCtx.fillText(`${sinThetaMax.toFixed(2)}`,padX+drawW-30,baseY+16);
-                decomposeCtx.fillText(`I_inter_max=${sqN}`,padX-50,padTop+8);
-
-                decomposeCtx.strokeStyle="rgba(255,255,255,0.08)";
-                decomposeCtx.lineWidth=1;
-                for(let i=1;i<=4;i++){
-                    let y = padTop + (drawH/4)*i;
-                    decomposeCtx.beginPath();
-                    decomposeCtx.moveTo(padX,y);
-                    decomposeCtx.lineTo(padX+drawW,y);
-                    decomposeCtx.stroke();
-                }
-
-                function localXToSinTh(localX){
-                    return sinThetaMin + (sinThetaMax - sinThetaMin) * localX / drawW;
-                }
-                function sinThToLocalX(st){
-                    return (st - sinThetaMin) / (sinThetaMax - sinThetaMin) * drawW;
-                }
-
-                // 多光束干涉蓝虚线核心修复
-                if(chkInter.checked){
-                    decomposeCtx.strokeStyle="#3498db";
-                    decomposeCtx.lineWidth=2;
-                    decomposeCtx.lineJoin='round';
-                    decomposeCtx.lineCap='round';
-                    decomposeCtx.setLineDash([8,5]);
-                    decomposeCtx.beginPath();
-                    let pointList = [];
-                    const baseSample = 2000;
-                    // 基础均匀采样
-                    for(let s=0; s<=baseSample; s++){
-                        const lx = drawW * s / baseSample;
-                        const th = localXToSinTh(lx);
-                        const I = calcInterI(th, N, d, lambda);
-                        const norm = I / sqN;
-                        pointList.push({x: padX+lx, y: baseY - norm*drawH});
-                    }
-                    // 动态获取当前左右边界内全部理论主极大
-                    const maxKGlobal = Math.floor(d / lambda);
-                    for(let k = -maxKGlobal; k <= maxKGlobal; k++){
-                        const stPeak = k * lambda / d;
-                        // 过滤超出当前sinθ边界的级次
-                        if(stPeak < sinThetaMin || stPeak > sinThetaMax) continue;
-                        const lx = sinThToLocalX(stPeak);
-                        const cx = padX + lx;
-                        // 干涉极大归一光强恒等于1，顶点固定画布顶部，永久等高
-                        const cy = baseY - 1 * drawH;
-                        pointList.push({x:cx, y:cy});
-                    }
-                    // 横坐标升序排序，连续连线无断点
-                    pointList.sort((a,b)=>a.x - b.x);
-                    let first = true;
-                    for(let p of pointList){
-                        if(first){ decomposeCtx.moveTo(p.x, p.y); first = false; }
-                        else decomposeCtx.lineTo(p.x, p.y);
-                    }
-                    decomposeCtx.stroke();
-                    decomposeCtx.setLineDash([]);
-
-                    // 绘制主峰圆点标记
-                    decomposeCtx.fillStyle = "#3498db";
-                    const maxK2 = Math.floor(d / lambda);
-                    for(let k = -maxK2; k <= maxK2; k++){
-                        const stPeak = k * lambda / d;
-                        if(stPeak < sinThetaMin || stPeak > sinThetaMax) continue;
-                        const lx = sinThToLocalX(stPeak);
-                        const cx = padX + lx;
-                        const cy = baseY - 1 * drawH;
-                        decomposeCtx.beginPath();
-                        decomposeCtx.arc(cx, cy, 4, 0, Math.PI*2);
-                        decomposeCtx.fill();
-                    }
-                }
-
-                if(chkDiff.checked){
-                    decomposeCtx.strokeStyle="#e74c3c";
-                    decomposeCtx.lineWidth=2;
-                    decomposeCtx.lineJoin='round';
-                    decomposeCtx.lineCap='round';
-                    decomposeCtx.setLineDash([8,5]);
-                    decomposeCtx.beginPath();
-                    let first = true;
-                    const sampleCnt = 1000;
-                    for(let s=0; s<=sampleCnt; s++){
-                        const localX = drawW * s / sampleCnt;
-                        const th = localXToSinTh(localX);
-                        const I_diff = calcDiffI(th, d, ratio, lambda);
-                        const canvasX = padX + localX;
-                        const canvasY = baseY - I_diff * drawH;
-                        if(first) decomposeCtx.moveTo(canvasX, canvasY);
-                        else decomposeCtx.lineTo(canvasX, canvasY);
-                        first = false;
-                    }
-                    decomposeCtx.stroke();
-                    decomposeCtx.setLineDash([]);
-                }
-
-                if(chkTotal.checked){
-                    decomposeCtx.strokeStyle="#9b59b6";
-                    decomposeCtx.lineWidth=3;
-                    decomposeCtx.lineJoin='round';
-                    decomposeCtx.lineCap='round';
-                    decomposeCtx.beginPath();
-                    let first = true;
-                    const sampleCnt = 8000;
-                    for(let s=0; s<=sampleCnt; s++){
-                        const localX = drawW * s / sampleCnt;
-                        const th = localXToSinTh(localX);
-                        const I_total = calcIntensity(th, N, d, ratio, lambda);
-                        const normI = I_total / sqN;
-                        const canvasX = padX + localX;
-                        const canvasY = baseY - normI * drawH;
-                        if(first) decomposeCtx.moveTo(canvasX, canvasY);
-                        else decomposeCtx.lineTo(canvasX, canvasY);
-                        first = false;
-                    }
-                    decomposeCtx.stroke();
-                }
-            }
-
-            function updateInfo() {
-                const a = d / ratio;
-                infoA.textContent = a.toFixed(0) + ' nm';
-                const th1 = lambda / d;
-                infoSinTheta1.textContent = th1.toFixed(3);
-                const maxM = Math.floor(d / lambda);
-                infoOrders.textContent = `±${maxM}`;
-                let miss = '无缺级';
-                if (N !== 1) {
-                    const k = ratio;
-                    if (Math.abs(k - Math.round(k)) < 1e-4) {
-                        const intK = Math.round(k);
-                        const arr = [];
-                        for (let m = intK; m <= maxM; m += intK) arr.push(`±${m}`);
-                        if (arr.length > 0) miss = arr.join(', ');
-                    }
-                }
-                infoMissing.textContent = miss;
-                valN.textContent = N;
-                valD.textContent = d.toFixed(0);
-                valRatio.textContent = ratio.toFixed(2);
-                valLambda.textContent = lambda.toFixed(0);
-                valSinMin.textContent = sinThetaMin.toFixed(2);
-                valSinMax.textContent = sinThetaMax.toFixed(2);
-            }
-
-            function fullRefresh() {
-                updateInfo();
-                requestDraw();
-            }
-
-            // 左右边界滑块绑定刷新（关键：拖动边界实时重算主峰）
-            sliderN.addEventListener('input', () => { N = Number(sliderN.value); fullRefresh(); });
-            sliderD.addEventListener('input', () => { d = Number(sliderD.value); fullRefresh(); });
-            sliderRatio.addEventListener('input', () => { ratio = Number(sliderRatio.value); fullRefresh(); });
-            sliderLambda.addEventListener('input', () => { lambda = Number(sliderLambda.value); fullRefresh(); });
-            sliderSinMin.addEventListener('input', () => { sinThetaMin = Number(sliderSinMin.value); fullRefresh(); });
-            sliderSinMax.addEventListener('input', () => { sinThetaMax = Number(sliderSinMax.value); fullRefresh(); });
-
-            chkInter.addEventListener('change', fullRefresh);
-            chkDiff.addEventListener('change', fullRefresh);
-            chkTotal.addEventListener('change', fullRefresh);
-
-            modeBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    modeBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    mode = btn.dataset.mode;
-                    wavelengthGroup.style.opacity = mode === 'mono' ? '1' : '0.5';
-                    sliderLambda.disabled = mode !== 'mono';
-                    buildSpectrumCache();
-                    resizeCanvases();
-                    drawCurve();
-                    drawDecomposeCurve();
-                    fullRefresh();
-                });
+                addLine(pts, col, op);
             });
+        }
+    });
+    return { collectedCount, collectedOrders: Array.from(collectedSet).sort((a,b)=>a-b) };
+}
 
-            function stopScan() {
-                scanRunning = false;
-                if (scanTimer) clearInterval(scanTimer);
-                scanTimer = null;
-                sliderN.disabled = false;
-                sliderD.disabled = false;
-                sliderRatio.disabled = false;
-                sliderLambda.disabled = false;
+/* ================================================================
+   四、强度公式
+   ================================================================ */
+function intensityAt(v, wl) {
+    if (Math.abs(v) > 1.0) return 0;
+    const d = state.d, a = state.d / state.ratio, N = state.N;
+    const gamma = Math.PI * d * v / wl;
+    const alpha = Math.PI * a * v / wl;
+    const sa = Math.abs(alpha) < 1e-9 ? 1 : Math.sin(alpha) / alpha;
+    let interf;
+    if (N === 1) {
+        interf = 1;
+    } else {
+        const den = Math.sin(gamma);
+        if (Math.abs(den) < 1e-10) interf = N * N;
+        else {
+            const num = Math.sin(N * gamma);
+            interf = (num * num) / (den * den);
+        }
+    }
+    return sa * sa * interf;
+}
+
+/* 将屏幕横向的 sin(theta) 转换为光栅方程中的切向变量 v。
+   反射光栅使用 k_out - k_in 的切向投影，因此零级位于镜面反射方向。 */
+function screenGratingVariable(s) {
+    const geom = getGratingGeometry();
+    const g = geom.gvec;
+    const isTrans = state.gratingType === 'transmission';
+    const q = Math.max(-0.999999, Math.min(0.999999, s));
+    const c = Math.sqrt(Math.max(0, 1 - q * q));
+    const kOut = isTrans
+        ? new THREE.Vector3(c, 0, q)
+        : new THREE.Vector3(q, 0, c);
+    const kIn = new THREE.Vector3(1, 0, 0);
+    return kOut.dot(g) - kIn.dot(g);
+}
+
+/* ================================================================
+   五、光屏纹理
+   ----------------------------------------------------------------
+   ★ 关键修正：
+   不再用硬编码的 45° 简化公式，而是直接从当前实际光栅几何
+   （n̂、ĝ 已包含 baseYaw + yaw 与 pitch）构造 ĝ，反推每个屏幕
+   像素对应的 v = k_out·ĝ − k_in·ĝ。这样改变姿态时光屏条纹
+   与 3D 场景同步平移。
+   ================================================================ */
+function updateScreenTexture() {
+    const W = screenCanvas.width, H = screenCanvas.height;
+    const spec = getSpectrum();
+    const N2 = state.N * state.N;
+    const isTrans = (state.gratingType === 'transmission');
+
+    /* 使用 getGratingGeometry() 返回的真实切向向量，保证反射式
+       的 m 阶方向、光屏纹理和二维曲线采用同一符号约定。 */
+    const geom = getGratingGeometry();
+    const g = geom.gvec;
+    const kIn = new THREE.Vector3(1, 0, 0);
+
+    const colR = new Float32Array(W);
+    const colG = new Float32Array(W);
+    const colB = new Float32Array(W);
+
+    for (let px = 0; px < W; px++) {
+        const posOff = (px / W - 0.5) * SCR_W;
+        const r2 = F2 * F2 + posOff * posOff;
+        const s_r = posOff / Math.sqrt(r2);   // sinθ_rel
+        const c_r = F2 / Math.sqrt(r2);        // cosθ_rel
+
+        /* 由屏幕位置反推衍射方向 k_out（含光轴方向的几何处理） */
+        let kOut_x, kOut_z;
+        if (isTrans) {
+            /* 透射：光轴 = +X，屏幕在 Y-Z 平面 */
+            kOut_x = c_r;
+            kOut_z = s_r;
+        } else {
+            /* 反射：光轴 = +Z，屏幕在 X-Y 平面 */
+            kOut_x = s_r;
+            kOut_z = c_r;
+        }
+
+        const v = new THREE.Vector3(kOut_x, 0, kOut_z).dot(g) - kIn.dot(g);
+
+        let R = 0, G = 0, B = 0;
+        for (let k = 0; k < spec.list.length; k++) {
+            const sp = spec.list[k];
+            let I = intensityAt(v, sp.wl) / N2;
+            if (I > 1) I = 1;
+            I *= sp.w;
+            R += I * sp.color.r;
+            G += I * sp.color.g;
+            B += I * sp.color.b;
+        }
+        R = R / (spec.n * spec.avgR);
+        G = G / (spec.n * spec.avgG);
+        B = B / (spec.n * spec.avgB);
+        colR[px] = Math.pow(Math.min(1, Math.max(0, R)), 0.75);
+        colG[px] = Math.pow(Math.min(1, Math.max(0, G)), 0.75);
+        colB[px] = Math.pow(Math.min(1, Math.max(0, B)), 0.75);
+    }
+
+    /* 竖直矩形窗（长条纹） */
+    const yHalf = BEAM_R + 2;
+    const yEdge = 2.5;
+
+    const img = screenCtx.createImageData(W, H);
+    const data = img.data;
+    const gridX = Math.max(40, Math.floor(W / 10));
+    const gridY = Math.max(24, Math.floor(H / 6));
+
+    for (let py = 0; py < H; py++) {
+        const yScr = (0.5 - py / H) * SCR_H;
+        const ay = Math.abs(yScr);
+        let win;
+        if (ay <= yHalf - yEdge) win = 1;
+        else if (ay >= yHalf + yEdge) win = 0;
+        else {
+            const u = (yHalf + yEdge - ay) / (2 * yEdge);
+            win = u * u * (3 - 2 * u);
+        }
+        for (let px = 0; px < W; px++) {
+            let R = 0.018, G = 0.028, B = 0.045;
+            if (px % gridX === 0 || py % gridY === 0) { R += 0.022; G += 0.038; B += 0.062; }
+            if (Math.abs(px - W / 2) < 1 || Math.abs(py - H / 2) < 1) { R += 0.03; G += 0.05; B += 0.08; }
+            R += colR[px] * win;
+            G += colG[px] * win;
+            B += colB[px] * win;
+            const idx = (py * W + px) * 4;
+            data[idx]     = Math.min(255, Math.round(R * 255));
+            data[idx + 1] = Math.min(255, Math.round(G * 255));
+            data[idx + 2] = Math.min(255, Math.round(B * 255));
+            data[idx + 3] = 255;
+        }
+    }
+    screenCtx.putImageData(img, 0, 0);
+    screenTexture.needsUpdate = true;
+}
+
+/* ================================================================
+   六、二维画布
+   ================================================================ */
+const patternCanvas = document.getElementById('patternCanvas');
+const patternCtx    = patternCanvas.getContext('2d');
+const curveCanvas   = document.getElementById('curveCanvas');
+const curveCtx      = curveCanvas.getContext('2d');
+
+function fitCanvas(cv) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(cv.clientWidth * dpr);
+    const h = Math.round(cv.clientHeight * dpr);
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    return { w, h };
+}
+
+function drawPattern() {
+    const { w, h } = fitCanvas(patternCanvas);
+    if (w === 0 || h === 0) return;
+
+    const marginL = Math.round(w * 0.062);
+    const marginR = Math.round(w * 0.022);
+    const plotX = marginL;
+    const plotW = Math.max(10, w - marginL - marginR);
+
+    const img = patternCtx.createImageData(w, h);
+    const data = img.data;
+    const spec = getSpectrum();
+    const N2 = state.N * state.N;
+    const sMin = state.sinMin, sMax = state.sinMax;
+    const sRange = sMax - sMin;
+
+    const colR = new Uint8ClampedArray(w);
+    const colG = new Uint8ClampedArray(w);
+    const colB = new Uint8ClampedArray(w);
+
+    for (let x = 0; x < w; x++) {
+        if (x < plotX || x >= plotX + plotW) {
+            colR[x] = colG[x] = colB[x] = 0;
+            continue;
+        }
+        const s = sMin + sRange * (x - plotX + 0.5) / plotW;
+
+        const vScreen = screenGratingVariable(s);
+        let R = 0, G = 0, B = 0;
+        for (let k = 0; k < spec.list.length; k++) {
+            const sp = spec.list[k];
+            let I = intensityAt(vScreen, sp.wl) / N2;
+            if (I > 1) I = 1;
+            I *= sp.w;
+            R += I * sp.color.r;
+            G += I * sp.color.g;
+            B += I * sp.color.b;
+        }
+        R = R / (spec.n * spec.avgR);
+        G = G / (spec.n * spec.avgG);
+        B = B / (spec.n * spec.avgB);
+        colR[x] = Math.round(Math.pow(Math.min(1, Math.max(0, R)), 0.75) * 255);
+        colG[x] = Math.round(Math.pow(Math.min(1, Math.max(0, G)), 0.75) * 255);
+        colB[x] = Math.round(Math.pow(Math.min(1, Math.max(0, B)), 0.75) * 255);
+    }
+
+    for (let y = 0; y < h; y++) {
+        const off = y * w * 4;
+        for (let x = 0; x < w; x++) {
+            data[off + x * 4]     = colR[x];
+            data[off + x * 4 + 1] = colG[x];
+            data[off + x * 4 + 2] = colB[x];
+            data[off + x * 4 + 3] = 255;
+        }
+    }
+    patternCtx.putImageData(img, 0, 0);
+
+    if (sMin < 0 && sMax > 0) {
+        const x0 = plotX + (0 - sMin) / sRange * plotW;
+        patternCtx.strokeStyle = 'rgba(255,255,255,.45)';
+        patternCtx.lineWidth = Math.max(1, w / 1200);
+        patternCtx.setLineDash([5, 7]);
+        patternCtx.beginPath();
+        patternCtx.moveTo(x0, 0); patternCtx.lineTo(x0, h);
+        patternCtx.stroke();
+        patternCtx.setLineDash([]);
+    }
+}
+
+function drawCurve() {
+    const { w, h } = fitCanvas(curveCanvas);
+    if (w === 0 || h === 0) return;
+
+    const marginL = Math.round(w * 0.062);
+    const marginR = Math.round(w * 0.022);
+    const marginT = Math.round(h * 0.075);
+    const marginB = Math.round(h * 0.135);
+    const plotX = marginL;
+    const plotY = marginT;
+    const plotW = Math.max(10, w - marginL - marginR);
+    const plotH = Math.max(10, h - marginT - marginB);
+    const yBottom = plotY + plotH;
+
+    const N2 = state.N * state.N;
+    const sMin = state.sinMin, sMax = state.sinMax;
+    const sRange = sMax - sMin;
+    const spec = getSpectrum();
+    const totalWeight = spec.list.reduce((a, sp) => a + sp.w, 0);
+    const isMono = (state.mode === 'mono');
+
+    curveCtx.fillStyle = '#0a0a14';
+    curveCtx.fillRect(0, 0, w, h);
+
+    curveCtx.strokeStyle = 'rgba(255,255,255,0.045)';
+    curveCtx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const y = plotY + plotH * i / 4;
+        curveCtx.beginPath();
+        curveCtx.moveTo(plotX, y); curveCtx.lineTo(plotX + plotW, y);
+        curveCtx.stroke();
+    }
+    for (let i = 0; i <= 10; i++) {
+        const x = plotX + plotW * i / 10;
+        curveCtx.beginPath();
+        curveCtx.moveTo(x, plotY); curveCtx.lineTo(x, yBottom);
+        curveCtx.stroke();
+    }
+
+    curveCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+    curveCtx.lineWidth = 1;
+    curveCtx.strokeRect(plotX + 0.5, plotY + 0.5, plotW - 1, plotH - 1);
+
+    const fs = Math.max(9, Math.round(h * 0.062));
+    curveCtx.fillStyle = 'rgba(150,170,200,0.75)';
+    curveCtx.font = `${fs}px Consolas, monospace`;
+    curveCtx.textAlign = 'right';
+    curveCtx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+        const y = plotY + plotH * i / 4;
+        curveCtx.fillText(((4 - i) / 4).toFixed(2), plotX - 4, y);
+    }
+
+    curveCtx.textAlign = 'center';
+    curveCtx.textBaseline = 'top';
+    const xLabelStep = 0.2;
+    const sStart = Math.ceil(sMin / xLabelStep) * xLabelStep;
+    for (let s = sStart; s <= sMax + 1e-6; s += xLabelStep) {
+        const x = plotX + (s - sMin) / sRange * plotW;
+        const txt = (Math.abs(s) < 1e-6) ? '0' : s.toFixed(1);
+        curveCtx.fillText(txt, x, yBottom + 3);
+    }
+
+    if (sMin < 0 && sMax > 0) {
+        const x0 = plotX + (0 - sMin) / sRange * plotW;
+        curveCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+        curveCtx.setLineDash([4, 6]);
+        curveCtx.beginPath();
+        curveCtx.moveTo(x0, plotY); curveCtx.lineTo(x0, yBottom);
+        curveCtx.stroke();
+        curveCtx.setLineDash([]);
+    }
+
+    let SUB = 1;
+    if (state.N > 50) SUB = 6;
+    else if (state.N > 20) SUB = 4;
+    else if (state.N > 8) SUB = 3;
+    else if (state.N > 3) SUB = 2;
+
+    const nPix = Math.max(2, Math.floor(plotW));
+    const totalInt = new Float32Array(nPix);
+    const subInts = spec.list.map(() => new Float32Array(nPix));
+
+    for (let px = 0; px < nPix; px++) {
+        const s0 = sMin + sRange * (px / nPix);
+        const s1 = sMin + sRange * ((px + 1) / nPix);
+        let maxTotal = 0;
+        for (let k = 0; k < spec.list.length; k++) subInts[k][px] = 0;
+        for (let j = 0; j < SUB; j++) {
+            const s = s0 + (s1 - s0) * (j + 0.5) / SUB;
+            const vScreen = screenGratingVariable(s);
+            let t = 0;
+            for (let k = 0; k < spec.list.length; k++) {
+                const sp = spec.list[k];
+                const I = intensityAt(vScreen, sp.wl) / N2;
+                if (I > subInts[k][px]) subInts[k][px] = I;
+                t += I * sp.w;
             }
-            startScanBtn.addEventListener('click', () => {
-                if (scanRunning) return;
-                stopScan();
-                const target = scanTarget.value;
-                const s = Number(scanStart.value);
-                const e = Number(scanEnd.value);
-                const stp = Number(scanStep.value);
-                const delay = Number(scanDelay.value);
-                const rev = scanReverse.checked;
-                currentScanVal = rev ? e : s;
-                stepSign = rev ? -1 : 1;
-                scanRunning = true;
-                if (target === 'N') sliderN.disabled = true;
-                if (target === 'd') sliderD.disabled = true;
-                if (target === 'ratio') sliderRatio.disabled = true;
-                if (target === 'lambda') sliderLambda.disabled = true;
+            if (t > maxTotal) maxTotal = t;
+        }
+        totalInt[px] = maxTotal / totalWeight;
+    }
 
-                scanTimer = setInterval(() => {
-                    if (target === 'N') { N = currentScanVal; sliderN.value = N; }
-                    else if (target === 'd') { d = currentScanVal; sliderD.value = d; }
-                    else if (target === 'ratio') { ratio = currentScanVal; sliderRatio.value = ratio; }
-                    else if (target === 'lambda') { lambda = currentScanVal; sliderLambda.value = lambda; }
-                    fullRefresh();
-                    currentScanVal += stp * stepSign;
-                    if ((stepSign === 1 && currentScanVal >= e) || (stepSign === -1 && currentScanVal <= s)) {
-                        fullRefresh();
-                        stopScan();
-                    }
-                }, delay);
-            });
-            stopScanBtn.addEventListener('click', stopScan);
+    let maxV = 0;
+    for (let px = 0; px < nPix; px++) if (totalInt[px] > maxV) maxV = totalInt[px];
+    if (maxV <= 0) maxV = 1;
+    const vToY = (v) => yBottom - Math.min(1.05, v / maxV) * plotH;
 
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => requestDraw(), 120);
-            });
+    if (isMono) {
+        const c = wlToRGB(state.lambda);
+        const cs = `rgb(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)})`;
 
-            buildSpectrumCache();
-            fullRefresh();
-        })();
-    </script>
+        const mMax = Math.ceil(Math.max(Math.abs(sMin), Math.abs(sMax)) * state.d / state.lambda) + 1;
+        curveCtx.strokeStyle = 'rgba(255,215,120,0.28)';
+        curveCtx.lineWidth = 1;
+        curveCtx.setLineDash([2, 4]);
+        for (let m = -mMax; m <= mMax; m++) {
+            const sm = m * state.lambda / state.d;
+            if (sm < sMin || sm > sMax) continue;
+            const x = plotX + (sm - sMin) / sRange * plotW;
+            curveCtx.beginPath();
+            curveCtx.moveTo(x, plotY); curveCtx.lineTo(x, yBottom);
+            curveCtx.stroke();
+        }
+        curveCtx.setLineDash([]);
+
+        curveCtx.strokeStyle = cs;
+        curveCtx.lineWidth = 2;
+        curveCtx.shadowColor = cs;
+        curveCtx.shadowBlur = 6;
+        curveCtx.beginPath();
+        for (let px = 0; px < nPix; px++) {
+            const x = plotX + px + 0.5;
+            const y = vToY(totalInt[px]);
+            if (px === 0) curveCtx.moveTo(x, y);
+            else curveCtx.lineTo(x, y);
+        }
+        curveCtx.stroke();
+        curveCtx.shadowBlur = 0;
+    } else {
+        for (let k = 0; k < spec.list.length; k++) {
+            const sp = spec.list[k];
+            const c = sp.color;
+            const alpha = 0.50 + 0.32 * sp.w;
+            curveCtx.strokeStyle = `rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${alpha})`;
+            curveCtx.lineWidth = 1.3;
+            curveCtx.beginPath();
+            for (let px = 0; px < nPix; px++) {
+                const v = subInts[k][px] * sp.w / totalWeight;
+                const x = plotX + px + 0.5;
+                const y = vToY(v);
+                if (px === 0) curveCtx.moveTo(x, y);
+                else curveCtx.lineTo(x, y);
+            }
+            curveCtx.stroke();
+        }
+
+        curveCtx.strokeStyle = 'rgba(255,255,255,0.95)';
+        curveCtx.lineWidth = 2;
+        curveCtx.shadowColor = 'rgba(255,255,255,0.45)';
+        curveCtx.shadowBlur = 4;
+        curveCtx.beginPath();
+        for (let px = 0; px < nPix; px++) {
+            const x = plotX + px + 0.5;
+            const y = vToY(totalInt[px]);
+            if (px === 0) curveCtx.moveTo(x, y);
+            else curveCtx.lineTo(x, y);
+        }
+        curveCtx.stroke();
+        curveCtx.shadowBlur = 0;
+    }
+
+    curveCtx.save();
+    curveCtx.translate(12, plotY + plotH / 2);
+    curveCtx.rotate(-Math.PI / 2);
+    curveCtx.textAlign = 'center';
+    curveCtx.textBaseline = 'middle';
+    curveCtx.fillStyle = 'rgba(150,170,200,0.7)';
+    curveCtx.font = `${fs}px Consolas, monospace`;
+    curveCtx.fillText('I/I₀', 0, 0);
+    curveCtx.restore();
+
+    curveCtx.textAlign = 'right';
+    curveCtx.textBaseline = 'bottom';
+    curveCtx.fillStyle = 'rgba(150,170,200,0.7)';
+    curveCtx.font = `${fs}px Consolas, monospace`;
+    curveCtx.fillText('sinθ', w - 4, h - 2);
+}
+
+/* ================================================================
+   七、信息面板
+   ================================================================ */
+const valN = document.getElementById('valN');
+const valD = document.getElementById('valD');
+const valRatio = document.getElementById('valRatio');
+const valLambda = document.getElementById('valLambda');
+const valPitch = document.getElementById('valPitch');
+const valYaw = document.getElementById('valYaw');
+const valSinMin = document.getElementById('valSinMin');
+const valSinMax = document.getElementById('valSinMax');
+const infoA = document.getElementById('infoA');
+const infoSinTheta1 = document.getElementById('infoSinTheta1');
+const infoOrders = document.getElementById('infoOrders');
+const infoMissing = document.getElementById('infoMissing');
+const infoNormal = document.getElementById('infoNormal');
+const infoCollected = document.getElementById('infoCollected');
+
+function updateInfo(info) {
+    valN.textContent = state.N;
+    valD.textContent = state.d.toFixed(0);
+    valRatio.textContent = state.ratio.toFixed(2);
+    valLambda.textContent = state.lambda.toFixed(0);
+    valPitch.textContent = state.pitch.toFixed(1);
+    valYaw.textContent = state.yaw.toFixed(1);
+    valSinMin.textContent = state.sinMin.toFixed(2);
+    valSinMax.textContent = state.sinMax.toFixed(2);
+
+    const a = state.d / state.ratio;
+    infoA.textContent = a.toFixed(0) + ' nm';
+    const sin1 = state.lambda / state.d;
+    infoSinTheta1.textContent = sin1.toFixed(3);
+    const maxM = Math.floor(state.d / state.lambda);
+    infoOrders.textContent = maxM > 0 ? `0, +/-1 ... +/-${maxM}` : '0 order';
+
+    let miss = 'none';
+    if (state.N !== 1) {
+        const k = state.ratio;
+        if (Math.abs(k - Math.round(k)) < 1e-3) {
+            const ik = Math.round(k);
+            const arr = [];
+            for (let m = ik; m <= maxM; m += ik) arr.push(`±${m}`);
+            if (arr.length) miss = arr.join(', ');
+        }
+    }
+    infoMissing.textContent = miss;
+
+    const L = getLayout();
+    const baseDeg = L.baseYaw * 180 / Math.PI;
+    infoNormal.textContent = (baseDeg + Math.abs(state.yaw)).toFixed(1) + '°';
+
+    if (info && info.collectedOrders) {
+        const orders = info.collectedOrders;
+        if (orders.length === 0) infoCollected.textContent = 'none';
+        else {
+            const mn = Math.min(...orders);
+            const mx = Math.max(...orders);
+            infoCollected.textContent = `${mn} … 0 … ${mx}`;
+        }
+    }
+}
+
+/* ================================================================
+   八、统一刷新
+   ================================================================ */
+let updatePending = false;
+function scheduleUpdate() {
+    if (updatePending) return;
+    updatePending = true;
+    requestAnimationFrame(() => {
+        updatePending = false;
+        updateGratingTransform();
+        const info = rebuildPaths();
+        updateScreenTexture();
+        updateInfo(info);
+        drawPattern();
+        drawCurve();
+        needsRender = true;
+    });
+}
+
+/* ================================================================
+   九、交互
+   ================================================================ */
+const sliderN       = document.getElementById('sliderN');
+const sliderD       = document.getElementById('sliderD');
+const sliderRatio   = document.getElementById('sliderRatio');
+const sliderLambda  = document.getElementById('sliderLambda');
+const sliderPitch   = document.getElementById('sliderPitch');
+const sliderYaw     = document.getElementById('sliderYaw');
+const sliderSinMin  = document.getElementById('sliderSinMin');
+const sliderSinMax  = document.getElementById('sliderSinMax');
+const wavelengthGroup = document.getElementById('wavelengthGroup');
+
+sliderN.addEventListener('input', () => { state.N = +sliderN.value; scheduleUpdate(); });
+sliderD.addEventListener('input', () => { state.d = +sliderD.value; scheduleUpdate(); });
+sliderRatio.addEventListener('input', () => { state.ratio = +sliderRatio.value; scheduleUpdate(); });
+sliderLambda.addEventListener('input', () => { state.lambda = +sliderLambda.value; scheduleUpdate(); });
+sliderPitch.addEventListener('input', () => { state.pitch = +sliderPitch.value; scheduleUpdate(); });
+sliderYaw.addEventListener('input', () => { state.yaw = +sliderYaw.value; scheduleUpdate(); });
+sliderSinMin.addEventListener('input', () => { state.sinMin = +sliderSinMin.value; scheduleUpdate(); });
+sliderSinMax.addEventListener('input', () => { state.sinMax = +sliderSinMax.value; scheduleUpdate(); });
+
+document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#modeToggle .mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = btn.dataset.mode;
+        const isMono = state.mode === 'mono';
+        wavelengthGroup.style.opacity = isMono ? '1' : '0.45';
+        sliderLambda.disabled = !isMono;
+        scheduleUpdate();
+    });
+});
+
+document.querySelectorAll('#gratingTypeToggle .mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#gratingTypeToggle .mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.gratingType = btn.dataset.gtype;
+        applyLayout();
+        scheduleUpdate();
+    });
+});
+
+document.getElementById('viewOverview').addEventListener('click', () => setView('overview'));
+document.getElementById('viewScreen').addEventListener('click', () => setView('screen'));
+
+let dragging = false, lastX = 0, lastY = 0;
+sceneCanvas.addEventListener('pointerdown', e => {
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    sceneCanvas.setPointerCapture(e.pointerId);
+});
+sceneCanvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    const dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    cam.theta -= dx * 0.006;
+    cam.phi = Math.max(-0.25, Math.min(1.35, cam.phi + dy * 0.006));
+    applyCamera();
+    needsRender = true;
+});
+sceneCanvas.addEventListener('pointerup', e => {
+    dragging = false;
+    try { sceneCanvas.releasePointerCapture(e.pointerId); } catch (_) {}
+});
+sceneCanvas.addEventListener('pointercancel', () => { dragging = false; });
+sceneCanvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const min = (currentView === 'screen') ? 25 : 60;
+    const max = (currentView === 'screen') ? 200 : 480;
+    cam.dist = Math.max(min, Math.min(max, cam.dist * (1 + e.deltaY * 0.0009)));
+    applyCamera();
+    needsRender = true;
+}, { passive: false });
+
+let resizeTimer = null;
+function handleResize() {
+    const w = sceneCanvas.clientWidth;
+    const h = sceneCanvas.clientHeight;
+    if (w === 0 || h === 0) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    drawPattern();
+    drawCurve();
+    needsRender = true;
+}
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(handleResize, 100);
+});
+
+/* ================================================================
+   十、渲染循环 & 启动
+   ================================================================ */
+let needsRender = true;
+function animate() {
+    requestAnimationFrame(animate);
+    if (needsRender) {
+        renderer.render(scene, camera);
+        needsRender = false;
+    }
+}
+
+function boot() {
+    applyLayout();
+    handleResize();
+    const info = rebuildPaths();
+    updateScreenTexture();
+    updateInfo(info);
+    drawPattern();
+    drawCurve();
+    needsRender = true;
+    animate();
+}
+
+boot();
+</script>
 </body>
 </html>
