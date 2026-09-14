@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>光栅衍射 · 3D 光路模拟（多曲线叠加 + 自适应采样版）</title>
+<title>光栅衍射 · 3D 光路模拟（复色光彩色峰版）</title>
 <style>
     :root{
         --bg:#1a1a2e; --panel-bg:#16213e; --text:#e0e0e0;
@@ -83,7 +83,6 @@
     .mode-btn.trans-active.active{background:#4da6ff}
     .mode-btn.refl-active.active{background:#ff6b9d}
 
-    /* 曲线类型按钮：多选，每种曲线有独立高亮色 */
     #curveModeToggle .mode-btn[data-cmode="grating"].active{background:#4da6ff;color:#fff;
         box-shadow:0 2px 10px rgba(77,166,255,.45)}
     #curveModeToggle .mode-btn[data-cmode="single"].active{background:#ffaa33;color:#20140a;
@@ -161,19 +160,19 @@
             <input type="range" id="sliderLambda" min="380" max="780" value="550" step="1">
         </div>
 
-        <div class="separator"></div>
+        <div class="separator" id="curveModeSep"></div>
 
-        <!-- 光强曲线类型：多选，可同时叠加显示 -->
-        <div class="control-group">
+        <!-- 光强曲线类型：仅单色光可见 -->
+        <div class="control-group" id="curveModeGroup">
             <label>光强曲线类型 <span class="tilt-tag">可多选叠加</span></label>
             <div class="mode-toggle" id="curveModeToggle">
                 <button class="mode-btn active" data-cmode="grating">光栅衍射</button>
                 <button class="mode-btn active" data-cmode="single">单缝衍射</button>
                 <button class="mode-btn active" data-cmode="multi">多缝干涉</button>
             </div>
-            <div class="hint">点击按钮切换显示 · 至少保留一种</div>
+            <div class="hint">点击切换显示 · 至少保留一种</div>
         </div>
-        <div class="separator"></div>
+        <div class="separator" id="curveModeSep2"></div>
 
         <div class="control-group">
             <label>狭缝个数 N <span class="val" id="valN">3</span></label>
@@ -250,12 +249,12 @@ const state = {
     mode: 'mono', pitch: 0, yaw: 0,
     sinMin: -0.55, sinMax: 0.55,
     gratingType: 'transmission',
-    /* 光强曲线显示集合（可多选叠加）
-       grating = 光栅衍射 | single = 单缝衍射 | multi = 多缝干涉  */
     curveModes: new Set(['grating', 'single', 'multi'])
 };
 
-/* 布局 */
+/* 单色光下的曲线类型会被暂存；切换到复色光时恢复用 */
+let savedCurveModes = ['grating', 'single', 'multi'];
+
 const LAYOUT = {
     transmission: {
         src:  { x: -70, y: 0, z: 0 },
@@ -342,7 +341,6 @@ rail.position.set(8, -26, 0); scene.add(rail);
 const metalMat = new THREE.MeshStandardMaterial({ color: 0x33445e, metalness: .85, roughness: .35 });
 const postMat  = new THREE.MeshStandardMaterial({ color: 0x24334c, metalness: .7, roughness: .5 });
 
-/* 光源 */
 const srcGroup = new THREE.Group();
 {
     const bodyGeo = new THREE.CylinderGeometry(3.6, 3.6, 14, 28);
@@ -373,7 +371,6 @@ function makePost(topY) {
     return grp;
 }
 
-/* 透镜 */
 const lensMat = new THREE.MeshPhysicalMaterial({
     color: 0x9fdcff, transparent: true, opacity: .24,
     roughness: .06, metalness: 0, side: THREE.DoubleSide, depthWrite: false,
@@ -393,7 +390,6 @@ function makeLens() {
 const lens1Grp = makeLens();
 const lens2Grp = makeLens();
 
-/* 光栅 */
 const gratingPivot = new THREE.Group();
 const gratingTilt  = new THREE.Group();
 gratingPivot.add(gratingTilt);
@@ -483,7 +479,6 @@ function makeGratingTexture() {
     zAxisLine.computeLineDistances(); gratingPivot.add(zAxisLine);
 }
 
-/* 光屏 */
 const screenCanvas = document.createElement('canvas');
 screenCanvas.width = 1024; screenCanvas.height = 640;
 const screenCtx = screenCanvas.getContext('2d');
@@ -513,7 +508,6 @@ scene.add(srcGroup, postSrc, lens1Grp, postL1, gratingPivot, postG,
 
 function applyLayout() {
     const L = getLayout();
-
     srcGroup.position.set(L.src.x, L.src.y, L.src.z);
     lens1Grp.position.set(L.l1.x, L.l1.y, L.l1.z);
     lens2Grp.position.set(L.l2.x, L.l2.y, L.l2.z);
@@ -611,11 +605,11 @@ function getSpectrum() {
         }
     } else if (state.mode === 'mercury') {
         list = [
-            { wl: 404.7, w: .80, color: wlToRGB(404.7) },
-            { wl: 435.8, w: 1.0, color: wlToRGB(435.8) },
-            { wl: 546.1, w: 1.0, color: wlToRGB(546.1) },
-            { wl: 577.0, w: .85, color: wlToRGB(577.0) },
-            { wl: 579.1, w: .85, color: wlToRGB(579.1) }
+            { wl: 404.7, w: 0.55, color: wlToRGB(404.7) },
+            { wl: 435.8, w: 0.90, color: wlToRGB(435.8) },
+            { wl: 546.1, w: 1.00, color: wlToRGB(546.1) },
+            { wl: 577.0, w: 0.75, color: wlToRGB(577.0) },
+            { wl: 579.1, w: 0.75, color: wlToRGB(579.1) }
         ];
     } else {
         list = [];
@@ -701,7 +695,9 @@ function rebuildPaths() {
     }
 
     const vMax = 0.985;
-    const mMax = Math.min(30, Math.floor(vMax * state.d / state.lambda));
+    const minWl = Math.min(...spec.list.map(sp => sp.wl));
+    const mMax = Math.min(30, Math.floor(vMax * state.d / minWl));
+
     let collectedCount = 0;
     const collectedSet = new Set();
 
@@ -745,9 +741,8 @@ function rebuildPaths() {
 }
 
 /* ================================================================
-   四、强度公式
+   四、强度公式（供光屏纹理使用）
    ================================================================ */
-/* —— 原始光栅衍射强度（保留原有约定：主极大峰值为 N²） —— */
 function intensityAt(v, wl) {
     if (Math.abs(v) > 1.0) return 0;
     const d = state.d, a = state.d / state.ratio, N = state.N;
@@ -768,8 +763,6 @@ function intensityAt(v, wl) {
     return sa * sa * interf;
 }
 
-/* 将屏幕横向的 sin(theta) 转换为光栅方程中的切向变量 v。
-   反射光栅使用 k_out - k_in 的切向投影，因此零级位于镜面反射方向。 */
 function screenGratingVariable(s) {
     const geom = getGratingGeometry();
     const g = geom.gvec;
@@ -879,6 +872,9 @@ const patternCtx    = patternCanvas.getContext('2d');
 const curveCanvas   = document.getElementById('curveCanvas');
 const curveCtx      = curveCanvas.getContext('2d');
 const curveTitle    = document.getElementById('curveTitle');
+const curveModeGroup = document.getElementById('curveModeGroup');
+const curveModeSep   = document.getElementById('curveModeSep');
+const curveModeSep2  = document.getElementById('curveModeSep2');
 
 const CURVE_LABELS = { grating: '光栅衍射', single: '单缝衍射', multi: '多缝干涉' };
 const CURVE_COLORS = {
@@ -886,15 +882,32 @@ const CURVE_COLORS = {
     single:  { stroke: '#ffaa33', glow: 'rgba(255,170,51,0.55)'  },
     multi:   { stroke: '#8866ff', glow: 'rgba(136,102,255,0.55)' }
 };
-/* 绘制顺序：先画包络类，再画主曲线（光栅衍射放最上层） */
 const CURVE_ORDER = ['single', 'multi', 'grating'];
 
 function updateCurveTitle() {
-    const labels = [];
-    ['single', 'multi', 'grating'].forEach(c => {
-        if (state.curveModes.has(c)) labels.push(CURVE_LABELS[c]);
+    const isMono = state.mode === 'mono';
+    if (isMono) {
+        const labels = [];
+        ['single', 'multi', 'grating'].forEach(c => {
+            if (state.curveModes.has(c)) labels.push(CURVE_LABELS[c]);
+        });
+        curveTitle.textContent = '光强分布曲线 I/I₀ · ' + (labels.join(' + ') || '—');
+    } else {
+        curveTitle.textContent = '光强分布曲线 I/I₀ · 各波长光栅衍射';
+    }
+}
+
+/* 曲线模式 UI：仅单色光显示；复色光强制只保留光栅衍射 */
+function updateCurveModeUI() {
+    const isMono = state.mode === 'mono';
+    const disp = isMono ? '' : 'none';
+    curveModeGroup.style.display = disp;
+    curveModeSep.style.display = disp;
+    curveModeSep2.style.display = disp;
+
+    document.querySelectorAll('#curveModeToggle .mode-btn').forEach(b => {
+        b.classList.toggle('active', state.curveModes.has(b.dataset.cmode));
     });
-    curveTitle.textContent = '光强分布曲线 I/I₀ · ' + (labels.join(' + ') || '—');
 }
 
 function fitCanvas(cv) {
@@ -974,7 +987,6 @@ function drawPattern() {
     }
 }
 
-/* 曲线图例 */
 function drawCurveLegend(items, plotX, plotY, plotW, fs) {
     if (!items.length) return;
     const ctx = curveCtx;
@@ -1018,7 +1030,9 @@ function drawCurveLegend(items, plotX, plotY, plotW, fs) {
 }
 
 /* ================================================================
-   曲线绘制：自适应采样 + 解析主极大位置
+   ★ 曲线绘制
+   - 单色光：显示所选类型（光栅衍射/单缝衍射/多缝干涉）
+   - 复色光：只显示光栅衍射，各波长分量按光谱色绘制（彩色峰）
    ================================================================ */
 function drawCurve() {
     const { w, h } = fitCanvas(curveCanvas);
@@ -1039,8 +1053,9 @@ function drawCurve() {
     const spec = getSpectrum();
     const totalWeight = spec.list.reduce((a, sp) => a + sp.w, 0);
     const nWl = spec.list.length;
+    const isMono = (state.mode === 'mono');
 
-    /* --- 背景 + 网格 --- */
+    /* ---------- 背景 + 网格 ---------- */
     curveCtx.fillStyle = '#0a0a14';
     curveCtx.fillRect(0, 0, w, h);
 
@@ -1062,7 +1077,7 @@ function drawCurve() {
     curveCtx.lineWidth = 1;
     curveCtx.strokeRect(plotX + 0.5, plotY + 0.5, plotW - 1, plotH - 1);
 
-    /* --- 坐标轴刻度 --- */
+    /* ---------- 坐标刻度 ---------- */
     const fs = Math.max(9, Math.round(h * 0.062));
     curveCtx.fillStyle = 'rgba(150,170,200,0.75)';
     curveCtx.font = `${fs}px Consolas, monospace`;
@@ -1091,12 +1106,12 @@ function drawCurve() {
         curveCtx.setLineDash([]);
     }
 
-    /* --- 预计算几何（每帧一次） --- */
+    /* ---------- 几何与常量预计算 ---------- */
     const geom = getGratingGeometry();
     const g = geom.gvec;
     const isTrans = state.gratingType === 'transmission';
     const gx = g.x, gz = g.z;
-    const kInDotG = gx;   // kIn=(1,0,0)
+    const kInDotG = gx;
 
     function screenVar(s) {
         const q = Math.max(-0.999999, Math.min(0.999999, s));
@@ -1105,54 +1120,39 @@ function drawCurve() {
         const kOut_z = isTrans ? q : c;
         return kOut_x * gx + kOut_z * gz - kInDotG;
     }
+    function screenSFromV(v) {
+        if (Math.abs(v) > 1) return null;
+        if (isTrans) {
+            if (Math.abs(gz) < 1e-9) return null;
+            return (v + kInDotG) / gz;
+        } else {
+            let lo = -1, hi = 1;
+            const f = (s) => screenVar(s) - v;
+            let flo = f(lo), fhi = f(hi);
+            if (flo * fhi > 0) return null;
+            for (let it = 0; it < 40; it++) {
+                const mid = (lo + hi) / 2;
+                const fm = f(mid);
+                if (flo * fm <= 0) { hi = mid; fhi = fm; }
+                else { lo = mid; flo = fm; }
+            }
+            return (lo + hi) / 2;
+        }
+    }
 
-    /* --- 预计算波长相关常数 --- */
     const a = state.d / state.ratio;
     const N = Math.max(1, state.N);
     const d = state.d;
     const dOverWl = new Float64Array(nWl);
     const aOverWl = new Float64Array(nWl);
-    const wlArr    = new Float64Array(nWl);
     const wArr     = new Float64Array(nWl);
     for (let k = 0; k < nWl; k++) {
-        wlArr[k] = spec.list[k].wl;
         dOverWl[k] = d / spec.list[k].wl;
         aOverWl[k] = a / spec.list[k].wl;
-        wArr[k] = spec.list[k].w;
+        wArr[k]     = spec.list[k].w;
     }
 
-    /* --- 计算单个采样点处的三种强度（求和前） --- */
-    function calcAll(v, out) {
-        if (Math.abs(v) > 1) { out.single = 0; out.multi = 0; out.grating = 0; return; }
-        let ts = 0, tm = 0, tg = 0;
-        for (let k = 0; k < nWl; k++) {
-            const alpha = Math.PI * aOverWl[k] * v;
-            let sa;
-            if (Math.abs(alpha) < 1e-9) sa = 1;
-            else { const s = Math.sin(alpha) / alpha; sa = s * s; }
-
-            let interf;
-            if (N === 1) interf = 1;
-            else {
-                const gamma = Math.PI * dOverWl[k] * v;
-                const den = Math.sin(gamma);
-                if (Math.abs(den) < 1e-10) interf = 1;
-                else {
-                    const num = Math.sin(N * gamma);
-                    interf = (num * num) / (den * den * N * N);
-                }
-            }
-            const w = wArr[k];
-            ts += sa * w;
-            tm += interf * w;
-            tg += sa * interf * w;
-        }
-        out.single = ts;
-        out.multi = tm;
-        out.grating = tg;
-    }
-
-    /* --- 自适应子采样密度 --- */
+    /* 自适应子采样密度 */
     const _nd = state.N * state.d;
     let SUB = 4;
     if (_nd > 1000000) SUB = 24;
@@ -1160,67 +1160,128 @@ function drawCurve() {
     else if (_nd > 100000) SUB = 10;
     else if (_nd > 30000) SUB = 6;
 
-    /* --- 逐像素计算（含解析主极大位置） --- */
-    const activeOrder = CURVE_ORDER.filter(c => state.curveModes.has(c));
+    /* ---------- 逐像素计算 ---------- */
+    /* 单色光：activeOrder 为用户所选集合
+       复色光：只算光栅衍射，并为每条谱线保留分量数据 */
+    const activeOrder = isMono
+        ? CURVE_ORDER.filter(c => state.curveModes.has(c))
+        : [];
+
     const nPix = Math.max(2, Math.floor(plotW));
     const dataMap = {};
     for (const ct of activeOrder) dataMap[ct] = new Float32Array(nPix);
 
-    const out = { single: 0, multi: 0, grating: 0 };
-    const samples = [];
+    let perWlG = null;
+    if (!isMono) {
+        perWlG = spec.list.map(() => new Float32Array(nPix));
+    }
+
+    const wlS = new Float64Array(nWl);
+    const wlM = new Float64Array(nWl);
+    const wlG = new Float64Array(nWl);
+
     let globalMax = 0;
 
     for (let px = 0; px < nPix; px++) {
         const s0 = sMin + sRange * (px / nPix);
         const s1 = sMin + sRange * ((px + 1) / nPix);
 
-        samples.length = 0;
+        /* 采样点：均匀采样 + 解析补入各波长主极大位置 v=mλ/d */
+        const samples = [];
         for (let j = 0; j <= SUB; j++) samples.push(s0 + (s1 - s0) * j / SUB);
 
-        /* 透射光栅：解析加入干涉主极大位置 s = mλ/d */
-        if (isTrans) {
-            for (let k = 0; k < nWl; k++) {
-                const inv = dOverWl[k];             // = d/λ
-                const mMin = Math.ceil(s0 * inv - 1e-9);
-                const mMax = Math.floor(s1 * inv + 1e-9);
-                for (let m = mMin; m <= mMax; m++) {
-                    const sPeak = m / inv;          // = mλ/d
-                    if (sPeak > s0 && sPeak < s1) samples.push(sPeak);
-                }
+        for (let k = 0; k < nWl; k++) {
+            const inv = dOverWl[k];
+            const vMin = screenVar(s0), vMax = screenVar(s1);
+            const vLo = Math.min(vMin, vMax), vHi = Math.max(vMin, vMax);
+            const mMin = Math.ceil(vLo * inv - 1e-9);
+            const mMax = Math.floor(vHi * inv + 1e-9);
+            for (let m = mMin; m <= mMax; m++) {
+                const vPeak = m / inv;
+                const sPeak = screenSFromV(vPeak);
+                if (sPeak === null) continue;
+                if (sPeak > s0 && sPeak < s1) samples.push(sPeak);
             }
         }
-        /* 反射光栅：v(s) 在常见 yaw 范围内大致单调，用高密度均匀采样即可 */
 
-        let mSingle = 0, mMulti = 0, mGrating = 0;
+        /* 逐波长计算该像素内的最大强度（各自归一化到峰值 1） */
+        wlS.fill(0); wlM.fill(0); wlG.fill(0);
         for (let i = 0; i < samples.length; i++) {
             const v = screenVar(samples[i]);
-            calcAll(v, out);
-            if (out.single  > mSingle)  mSingle  = out.single;
-            if (out.multi   > mMulti)   mMulti   = out.multi;
-            if (out.grating > mGrating) mGrating = out.grating;
+            if (Math.abs(v) > 1) continue;
+            for (let k = 0; k < nWl; k++) {
+                const alpha = Math.PI * aOverWl[k] * v;
+                let sa;
+                if (Math.abs(alpha) < 1e-9) sa = 1;
+                else { const s = Math.sin(alpha) / alpha; sa = s * s; }
+
+                let interf;
+                if (N === 1) interf = 1;
+                else {
+                    const gamma = Math.PI * dOverWl[k] * v;
+                    const den = Math.sin(gamma);
+                    if (Math.abs(den) < 1e-10) interf = 1;
+                    else {
+                        const num = Math.sin(N * gamma);
+                        interf = (num * num) / (den * den * N * N);
+                    }
+                }
+
+                if (sa > wlS[k]) wlS[k] = sa;
+                if (interf > wlM[k]) wlM[k] = interf;
+                const gVal = sa * interf;
+                if (gVal > wlG[k]) wlG[k] = gVal;
+            }
         }
 
-        for (const ct of activeOrder) {
-            let val;
-            if (ct === 'single')  val = mSingle  / totalWeight;
-            else if (ct === 'multi') val = mMulti / totalWeight;
-            else val = mGrating / totalWeight;
-            dataMap[ct][px] = val;
-            if (val > globalMax) globalMax = val;
+        if (isMono) {
+            /* 单色光：合并到所选曲线类型 */
+            let sumS = 0, sumM = 0, sumG = 0;
+            for (let k = 0; k < nWl; k++) {
+                sumS += wlS[k] * wArr[k];
+                sumM += wlM[k] * wArr[k];
+                sumG += wlG[k] * wArr[k];
+            }
+            const valS = sumS / totalWeight;
+            const valM = sumM / totalWeight;
+            const valG = sumG / totalWeight;
+
+            if (activeOrder.includes('single')) {
+                dataMap.single[px] = valS;
+                if (valS > globalMax) globalMax = valS;
+            }
+            if (activeOrder.includes('multi')) {
+                dataMap.multi[px] = valM;
+                if (valM > globalMax) globalMax = valM;
+            }
+            if (activeOrder.includes('grating')) {
+                dataMap.grating[px] = valG;
+                if (valG > globalMax) globalMax = valG;
+            }
+        } else {
+            /* 复色光：只保留各波长光栅衍射分量
+               ——每条谱线按自身光谱权重缩放，最强谱线峰高为 1 */
+            for (let k = 0; k < nWl; k++) {
+                const v = wlG[k] * wArr[k];
+                perWlG[k][px] = v;
+                if (v > globalMax) globalMax = v;
+            }
         }
     }
     if (globalMax <= 0) globalMax = 1;
     const vToY = (v) => yBottom - Math.min(1.05, v / globalMax) * plotH;
 
-    /* --- 单色光下标注光栅衍射主极大位置（虚线） --- */
-    if (state.mode === 'mono' && state.curveModes.has('grating')) {
-        const mMax = Math.ceil(Math.max(Math.abs(sMin), Math.abs(sMax)) * d / state.lambda) + 1;
+    /* ---------- 单色光：光栅衍射主极大位置虚线标注 ---------- */
+    if (isMono && state.curveModes.has('grating')) {
+        const mMaxLine = Math.ceil(Math.max(Math.abs(sMin), Math.abs(sMax)) * d / state.lambda) + 1;
         curveCtx.strokeStyle = 'rgba(255,215,120,0.22)';
         curveCtx.lineWidth = 1;
         curveCtx.setLineDash([2, 4]);
-        for (let m = -mMax; m <= mMax; m++) {
-            const sm = m * state.lambda / d;
-            if (sm < sMin || sm > sMax) continue;
+        for (let m = -mMaxLine; m <= mMaxLine; m++) {
+            const vPeak = m * state.lambda / d;
+            if (Math.abs(vPeak) > 1) continue;
+            const sm = screenSFromV(vPeak);
+            if (sm === null || sm < sMin || sm > sMax) continue;
             const x = plotX + (sm - sMin) / sRange * plotW;
             curveCtx.beginPath();
             curveCtx.moveTo(x, plotY); curveCtx.lineTo(x, yBottom);
@@ -1229,33 +1290,57 @@ function drawCurve() {
         curveCtx.setLineDash([]);
     }
 
-    /* --- 依次绘制所有激活曲线 --- */
-    for (const ct of activeOrder) {
-        const col = CURVE_COLORS[ct];
-        const arr = dataMap[ct];
-        curveCtx.strokeStyle = col.stroke;
-        curveCtx.lineWidth = (ct === 'grating') ? 2.2 : 1.6;
-        curveCtx.shadowColor = col.glow;
-        curveCtx.shadowBlur = 6;
-        curveCtx.beginPath();
-        for (let px = 0; px < nPix; px++) {
-            const x = plotX + px + 0.5;
-            const y = vToY(arr[px]);
-            if (px === 0) curveCtx.moveTo(x, y);
-            else curveCtx.lineTo(x, y);
+    /* ---------- 复色光：各波长光栅衍射曲线（彩色峰） ---------- */
+    if (!isMono) {
+        for (let k = 0; k < nWl; k++) {
+            const sp = spec.list[k];
+            const c = sp.color;
+            const rr = Math.round(c.r * 255), gg = Math.round(c.g * 255), bb = Math.round(c.b * 255);
+            curveCtx.strokeStyle = `rgb(${rr},${gg},${bb})`;
+            curveCtx.lineWidth = 1.7;
+            curveCtx.shadowColor = `rgba(${rr},${gg},${bb},0.55)`;
+            curveCtx.shadowBlur = 5;
+            curveCtx.beginPath();
+            for (let px = 0; px < nPix; px++) {
+                const x = plotX + px + 0.5;
+                const y = vToY(perWlG[k][px]);
+                if (px === 0) curveCtx.moveTo(x, y);
+                else curveCtx.lineTo(x, y);
+            }
+            curveCtx.stroke();
+            curveCtx.shadowBlur = 0;
         }
-        curveCtx.stroke();
-        curveCtx.shadowBlur = 0;
+    } else {
+        /* ---------- 单色光：绘制所选曲线类型 ---------- */
+        for (const ct of activeOrder) {
+            const col = CURVE_COLORS[ct];
+            const arr = dataMap[ct];
+            curveCtx.strokeStyle = col.stroke;
+            curveCtx.lineWidth = (ct === 'grating') ? 2.2 : 1.6;
+            curveCtx.shadowColor = col.glow;
+            curveCtx.shadowBlur = 6;
+            curveCtx.beginPath();
+            for (let px = 0; px < nPix; px++) {
+                const x = plotX + px + 0.5;
+                const y = vToY(arr[px]);
+                if (px === 0) curveCtx.moveTo(x, y);
+                else curveCtx.lineTo(x, y);
+            }
+            curveCtx.stroke();
+            curveCtx.shadowBlur = 0;
+        }
     }
 
-    /* --- 图例 --- */
-    const legendItems = activeOrder.map(ct => ({
-        color: CURVE_COLORS[ct].stroke,
-        label: CURVE_LABELS[ct]
-    }));
-    drawCurveLegend(legendItems, plotX, plotY, plotW, fs);
+    /* ---------- 图例（仅单色光） ---------- */
+    if (isMono) {
+        const legendItems = activeOrder.map(ct => ({
+            color: CURVE_COLORS[ct].stroke,
+            label: CURVE_LABELS[ct]
+        }));
+        drawCurveLegend(legendItems, plotX, plotY, plotW, fs);
+    }
 
-    /* --- 轴标签 --- */
+    /* ---------- 轴标签 ---------- */
     curveCtx.save();
     curveCtx.translate(12, plotY + plotH / 2);
     curveCtx.rotate(-Math.PI / 2);
@@ -1303,9 +1388,13 @@ function updateInfo(info) {
 
     const a = state.d / state.ratio;
     infoA.textContent = a.toFixed(0) + ' nm';
-    const sin1 = state.lambda / state.d;
+
+    /* 非单色光下用最小波长给出可参考的可见最高级次 */
+    const spec = getSpectrum();
+    const minWl = Math.min(...spec.list.map(sp => sp.wl));
+    const sin1 = minWl / state.d;
     infoSinTheta1.textContent = sin1.toFixed(3);
-    const maxM = Math.floor(state.d / state.lambda);
+    const maxM = Math.floor(state.d / minWl);
     infoOrders.textContent = maxM > 0 ? `0, +/-1 ... +/-${maxM}` : '0 order';
 
     let miss = 'none';
@@ -1376,14 +1465,32 @@ sliderYaw.addEventListener('input', () => { state.yaw = +sliderYaw.value; schedu
 sliderSinMin.addEventListener('input', () => { state.sinMin = +sliderSinMin.value; scheduleUpdate(); });
 sliderSinMax.addEventListener('input', () => { state.sinMax = +sliderSinMax.value; scheduleUpdate(); });
 
+/* ★ 光照模式切换：单色光 ↔ 复色光 时同步曲线类型的显示/恢复 */
 document.querySelectorAll('#modeToggle .mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
+        const newMode = btn.dataset.mode;
+        const wasMono = (state.mode === 'mono');
+        const isMono  = (newMode === 'mono');
+
+        if (wasMono && !isMono) {
+            /* 离开单色光：保存当前选择，强制只保留光栅衍射 */
+            savedCurveModes = Array.from(state.curveModes);
+            if (savedCurveModes.length === 0) savedCurveModes = ['grating'];
+            state.curveModes = new Set(['grating']);
+        } else if (!wasMono && isMono) {
+            /* 回到单色光：恢复之前的选择 */
+            state.curveModes = new Set(savedCurveModes);
+        }
+
+        state.mode = newMode;
+
         document.querySelectorAll('#modeToggle .mode-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        state.mode = btn.dataset.mode;
-        const isMono = state.mode === 'mono';
         wavelengthGroup.style.opacity = isMono ? '1' : '0.45';
         sliderLambda.disabled = !isMono;
+
+        updateCurveModeUI();
+        updateCurveTitle();
         scheduleUpdate();
     });
 });
@@ -1398,7 +1505,7 @@ document.querySelectorAll('#gratingTypeToggle .mode-btn').forEach(btn => {
     });
 });
 
-/* 光强曲线类型：多选切换（至少保留一种），仅影响下方曲线画布 */
+/* 光强曲线类型（仅单色光有效）：多选切换，至少保留一种 */
 document.querySelectorAll('#curveModeToggle .mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cm = btn.dataset.cmode;
@@ -1478,6 +1585,7 @@ function animate() {
 
 function boot() {
     applyLayout();
+    updateCurveModeUI();
     updateCurveTitle();
     handleResize();
     const info = rebuildPaths();
