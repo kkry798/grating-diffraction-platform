@@ -114,18 +114,15 @@
     <div class="left-col">
         <div class="card">
             <canvas id="scene3d"></canvas>
-            <div class="overlay-hint">拖动旋转视角 · 滚轮缩放</div>
             <div class="view-toggle">
                 <button id="viewOverview" class="view-btn active">全景视角</button>
                 <button id="viewScreen"   class="view-btn">聚焦光屏</button>
             </div>
         </div>
         <div class="card">
-            <div class="card-title">衍射图样（光屏二维展开）</div>
             <canvas id="patternCanvas"></canvas>
         </div>
         <div class="card">
-            <div class="card-title" id="curveTitle">光强分布曲线 I/I₀</div>
             <canvas id="curveCanvas"></canvas>
         </div>
     </div>
@@ -885,6 +882,7 @@ const CURVE_COLORS = {
 const CURVE_ORDER = ['single', 'multi', 'grating'];
 
 function updateCurveTitle() {
+    if (!curveTitle) return;
     const isMono = state.mode === 'mono';
     if (isMono) {
         const labels = [];
