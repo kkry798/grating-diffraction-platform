@@ -390,62 +390,200 @@
   <div class="section-head reveal">
     <span class="section-num">06</span>
     <h2>拓展实验 · 自制光谱仪</h2>
-    <p class="section-lead">DVD-R 透射光栅 + 摄像头 · 搭建低成本光谱分析系统</p>
+    <p class="section-lead">两代仪器迭代 · 从初代原型到同轴模块化光谱仪</p>
   </div>
 
-  <div class="result-panel reveal">
-    <div class="result-text">
-      <h3>基于 DVD-R 的自制光谱仪</h3>
-      <p>利用 DVD-R 光盘透明数据层作为衍射元件，结合 3D 打印暗箱、USB 摄像头与 Theremino Spectrometer 软件，搭建低成本光谱分析系统。DVD-R 数据层具有规则排列的微米级刻纹，刻纹间距与可见光波长同数量级，可作为<b>透射光栅</b>对白光分光。</p>
-      <ul>
-        <li>荧光灯波长校准：436 nm 与 546 nm 双谱线定标</li>
-        <li>汞灯谱线验证：相对误差 <b>0.16% ~ 0.50%</b></li>
-        <li>太阳光连续光谱：完整呈现 400–700 nm 可见光分光</li>
-      </ul>
+  <!-- 迭代总览 -->
+  <div class="spec-overview reveal">
+    <div class="spec-version-grid">
+      <figure class="spec-version-card">
+        <div class="spec-version-img"><img src="assets/img/v1-a.png" alt="V1.0 简易 3D 打印光栅教学光谱仪" loading="lazy"></div>
+        <figcaption>
+          <span class="spec-tag">V1.0</span>
+          <h3>简易 3D 打印光栅教学光谱仪</h3>
+          <p>初代原型 · 完成基础光谱采集，验证分光原理</p>
+        </figcaption>
+      </figure>
+      <div class="spec-version-arrow" aria-hidden="true">→</div>
+      <figure class="spec-version-card spec-version-card--focus">
+        <div class="spec-version-img"><img src="assets/img/v2-device.jpg" alt="V2.0 同轴模块化光栅教学光谱仪" loading="lazy"></div>
+        <figcaption>
+          <span class="spec-tag spec-tag--accent">V2.0</span>
+          <h3>同轴模块化光栅教学光谱仪</h3>
+          <p>双杆导轨 + 光栅旋转转台 · 元件可滑移调换</p>
+        </figcaption>
+      </figure>
     </div>
-    <div class="spectrum" aria-hidden="true">
-      <div class="spec-band"></div>
-      <div class="spec-labels">
-        <span>紫</span><span>蓝</span><span>青</span><span>绿</span><span>黄</span><span>橙</span><span>红</span>
+    <p class="spec-overview-note">我们经历两代自制光谱仪迭代：<b>V1.0</b> 实现光谱原理初步验证；<b>V2.0</b> 升级为<b>双杆导轨同轴模块化架构</b>，增加光栅旋转转台，全部光学元件可滑移拆装，优化光路同轴、抑制杂散光，完成三类光源定量光谱测量，适配课堂探究实验。</p>
+  </div>
+
+  <!-- 标签页切换 -->
+  <div class="spec-tabs reveal" role="tablist" aria-label="自制光谱仪迭代内容">
+    <button class="spec-tab active" data-tab="v1" role="tab" aria-selected="true">V1.0 初代原型</button>
+    <button class="spec-tab" data-tab="v2" role="tab" aria-selected="false">V2.0 同轴模块化</button>
+    <button class="spec-tab" data-tab="compare" role="tab" aria-selected="false">性能对比</button>
+    <button class="spec-tab" data-tab="task" role="tab" aria-selected="false">虚实联动探究</button>
+  </div>
+
+  <!-- V1.0 初代原型 -->
+  <div class="spec-pane active" data-pane="v1">
+    <div class="spec-pane-grid">
+      <div class="spec-figures">
+        <figure class="spec-fig"><img src="assets/img/v1-a.png" alt="V1.0 装置视图一" loading="lazy"><figcaption>V1.0 装置 · 视图一</figcaption></figure>
       </div>
-      <div class="spec-caption">可见光连续光谱 · 光栅色散</div>
+      <div class="spec-pane-text">
+        <h4>设计初衷</h4>
+        <p>为验证光栅分光原理、降低光谱仪搭建门槛，初代采用 3D 打印支架与 DVD-R 光盘数据层作为透射光栅，配合 USB 摄像头与开源软件完成基础光谱采集，实现「定性演示」目标。</p>
+        <h4>初代暴露的问题</h4>
+        <ul class="spec-issue">
+          <li><b>同轴调节困难</b> —— 各元件手工对位，光轴一致性差</li>
+          <li><b>元件固定不可移动</b> —— 无法精细调整间距与角度</li>
+          <li><b>杂散光大</b> —— 开放式结构，环境光干扰明显</li>
+          <li><b>谱线展宽</b> —— 分辨率受限，谱线较宽</li>
+        </ul>
+        <p class="spec-callout">教学意义：科研与教具开发并非一步到位——原型也能完成定性演示，但存在局限，正是这些局限催生了 V2.0 的迭代。</p>
+      </div>
     </div>
   </div>
 
-  <div class="measure-block reveal">
-    <h3 class="block-title">实验流程</h3>
-    <div class="card-grid">
-      <article class="card">
-        <div class="card-icon icon-green">①</div>
-        <h3>光谱校准</h3>
-        <p>以荧光灯为校准光源，选取 436 nm、546 nm 两条特征谱线，软件自动拟合像素坐标与波长，完成全波段标定。</p>
-      </article>
-      <article class="card">
-        <div class="card-icon icon-cyan">②</div>
-        <h3>谱线验证</h3>
-        <p>更换低压汞灯重新采集，对照标准谱线评价测量精度，除黄色双线外各谱线均被正确识别。</p>
-      </article>
-      <article class="card">
-        <div class="card-icon icon-rainbow">③</div>
-        <h3>连续光谱</h3>
-        <p>以自然太阳光采集连续衍射光谱，覆盖 400~700 nm 全可见光区，直观展示光栅对白光的连续分光。</p>
-      </article>
+  <!-- V2.0 同轴模块化 -->
+  <div class="spec-pane" data-pane="v2">
+    <div class="measure-block">
+      <h3 class="block-title">装置结构与光路</h3>
+      <figure class="spec-fig spec-fig--full">
+        <img src="assets/img/v2-device.jpg" alt="V2.0 同轴模块化光谱仪结构渲染图" loading="lazy">
+        <figcaption>V2.0 同轴模块化光谱仪 · 结构渲染图</figcaption>
+      </figure>
+      <div class="spec-lightpath" aria-label="光路顺序">
+        <span class="spec-lp-item">狭缝组件</span><span class="spec-lp-arrow" aria-hidden="true">→</span><span class="spec-lp-item">准直透镜 L₁</span><span class="spec-lp-arrow" aria-hidden="true">→</span><span class="spec-lp-item">光栅旋转转台</span><span class="spec-lp-arrow" aria-hidden="true">→</span><span class="spec-lp-item">聚焦透镜 L₂</span><span class="spec-lp-arrow" aria-hidden="true">→</span><span class="spec-lp-item">USB 摄像头</span>
+      </div>
+      <p class="spec-optical">光源经狭缝限束后，由准直透镜 L₁ 变为平行光，垂直入射光栅旋转转台上的透射光栅；不同波长衍射角不同，经聚焦透镜 L₂ 汇聚至 USB 摄像头靶面，形成按波长展开的光谱。</p>
+      <div class="spec-jump">
+        <a class="spec-link" href="sim/sim3/index.html" target="_blank" rel="noopener">点击查看虚拟仿真中同款光路 ↗</a>
+      </div>
+    </div>
+
+    <div class="measure-block">
+      <h3 class="block-title">装置拆解</h3>
+      <div class="spec-video">
+        <video controls preload="metadata" poster="assets/img/v2-device.jpg">
+          <source src="assets/video/v2-demo.mp4" type="video/mp4">
+          你的浏览器不支持 HTML5 视频播放。
+        </video>
+      </div>
+    </div>
+
+    <div class="measure-block">
+      <h3 class="block-title">实验操作步骤</h3>
+      <div class="flow spec-flow">
+        <div class="flow-step">
+          <div class="flow-dot"><span>Ⅰ</span></div>
+          <h3>等高调节</h3>
+          <p>沿双杆导轨滑移各元件座，使狭缝、透镜、光栅、摄像头中心等高</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>Ⅱ</span></div>
+          <h3>准直对焦</h3>
+          <p>调节 L₁ 使出射平行光，调节 L₂ 使光谱清晰聚焦于靶面</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>Ⅲ</span></div>
+          <h3>光谱标定</h3>
+          <p>以荧光灯 436 / 546 nm 双谱线定标，拟合像素—波长关系</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-dot"><span>Ⅳ</span></div>
+          <h3>光谱采集</h3>
+          <p>切换光源，采集汞灯、太阳光光谱并比对标准谱线</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="measure-block">
+      <h3 class="block-title">实测光谱图谱</h3>
+      <div class="spec-spectra">
+        <figure class="spec-fig"><img src="assets/img/spec-fluorescent.png" alt="荧光灯校准图谱" loading="lazy"><figcaption>荧光灯校准图谱 · 436 / 546 nm</figcaption></figure>
+        <figure class="spec-fig"><img src="assets/img/spec-mercury.jpg" alt="汞灯特征谱线验证" loading="lazy"><figcaption>汞灯特征谱线验证</figcaption></figure>
+        <figure class="spec-fig"><img src="assets/img/spec-sun.jpg" alt="太阳光连续光谱" loading="lazy"><figcaption>太阳光连续光谱 · 400–700 nm</figcaption></figure>
+      </div>
+    </div>
+
+    <div class="measure-block">
+      <h3 class="block-title">汞灯谱线验证结果</h3>
+      <table class="data-table">
+        <thead>
+          <tr><th>软件测量值 (nm)</th><th>标准波长 (nm)</th><th>相对误差 (%)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>406</td><td>404.7</td><td class="td-b">0.32</td></tr>
+          <tr><td>438</td><td>435.8</td><td class="td-b">0.50</td></tr>
+          <tr><td>547</td><td>546.1</td><td class="td-b">0.16</td></tr>
+        </tbody>
+      </table>
+      <p class="table-note">波长测量相对误差 0.16%~0.50%，分辨率约 6.6 nm。除黄色双谱线（577 / 579 nm）因间距小于分辨极限表现为单峰外，其余主要谱线均被正确识别，满足可见光光谱分析与教学演示需求。</p>
+    </div>
+
+    <div class="measure-block">
+      <h3 class="block-title">性能局限与未来优化</h3>
+      <div class="panel">
+        <ul>
+          <li><b>衍射元件：</b>透射光栅采用 DVD-R 数据层，并非专业刻线光栅，栅距均匀性有限，导致谱线微展宽。</li>
+          <li><b>分辨率受限：</b>狭缝宽度与摄像头分辨率共同限制谱线分辨（约 6.6 nm），577 / 579 nm 汞黄双线难以分开。</li>
+          <li><b>杂散光：</b>虽经遮光处理仍存在少量环境光干扰，影响弱谱线信噪比。</li>
+          <li><b>优化方向：</b>引入专业全息光栅、精密可调狭缝、更高分辨率传感器，并加装遮光罩进一步抑制杂散光。</li>
+        </ul>
+      </div>
     </div>
   </div>
 
-  <div class="measure-block reveal">
-    <h3 class="block-title">汞灯谱线验证结果</h3>
-    <table class="data-table">
-      <thead>
-        <tr><th>软件测量值 (nm)</th><th>标准波长 (nm)</th><th>相对误差 (%)</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>406</td><td>404.7</td><td class="td-b">0.32</td></tr>
-        <tr><td>438</td><td>435.8</td><td class="td-b">0.50</td></tr>
-        <tr><td>547</td><td>546.1</td><td class="td-b">0.16</td></tr>
-      </tbody>
-    </table>
-    <p class="table-note">除黄色双谱线因间距较小表现为单峰外，其余主要谱线均被正确识别，测量精度满足可见光光谱分析及教学演示需求。</p>
+  <!-- 性能对比 -->
+  <div class="spec-pane" data-pane="compare">
+    <div class="spec-compare-wrap">
+      <table class="spec-compare">
+        <thead>
+          <tr><th>项目</th><th>V1.0 初代简易版</th><th>V2.0 同轴模块化版</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>机械结构</td><td>简易 3D 打印支架</td><td class="spec-compare-new">金属双杆导轨 + 可旋转光栅转台，元件可滑移调换</td></tr>
+          <tr><td>光路调节</td><td>调节难度大，同轴度较差</td><td class="spec-compare-new">可等高同轴精细调节</td></tr>
+          <tr><td>杂散光水平</td><td>较高</td><td class="spec-compare-new">显著抑制</td></tr>
+          <tr><td>可测光源</td><td>基础光源</td><td class="spec-compare-new">荧光灯、汞灯、太阳光</td></tr>
+          <tr><td>波长相对误差</td><td>较大</td><td class="spec-compare-new">0.16% ~ 0.50%</td></tr>
+          <tr><td>分辨率</td><td>较差</td><td class="spec-compare-new">约 6.6 nm</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 虚实联动探究 -->
+  <div class="spec-pane" data-pane="task">
+    <div class="spec-task-list">
+      <article class="spec-task">
+        <span class="spec-task-num">①</span>
+        <div>
+          <h4>参数预测</h4>
+          <p>在网站 3D 光栅衍射仿真中修改光栅常数 d、缝数 N，预测光谱图样与可见级次的变化。</p>
+        </div>
+      </article>
+      <article class="spec-task">
+        <span class="spec-task-num">②</span>
+        <div>
+          <h4>虚实对照</h4>
+          <p>观察 V2.0 实测汞灯光谱，将实测谱线位置与仿真输出结果对照，验证光栅方程。</p>
+        </div>
+      </article>
+      <article class="spec-task">
+        <span class="spec-task-num">③</span>
+        <div>
+          <h4>深度思考</h4>
+          <p>为什么 577 / 579 nm 汞黄双线无法分开？结合狭缝宽度与分辨率限制，分析谱线展宽的来源。</p>
+        </div>
+      </article>
+    </div>
+    <div class="spec-jump spec-jump--row">
+      <a class="btn btn-ghost" href="#simulation">返回光栅衍射仿真模块</a>
+      <a class="btn btn-ghost" href="#video">返回微视频</a>
+    </div>
   </div>
 </section>
 

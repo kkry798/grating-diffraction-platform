@@ -440,3 +440,24 @@
   requestAnimationFrame(loop);
   window.addEventListener('resize', resize);
 })();
+
+/* ===== 自制光谱仪 · 标签页切换 ===== */
+(function () {
+  const tabs = document.querySelectorAll('.spec-tab');
+  const panes = document.querySelectorAll('.spec-pane');
+  if (!tabs.length || !panes.length) return;
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const name = tab.dataset.tab;
+      tabs.forEach(t => {
+        const on = t === tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', String(on));
+      });
+      panes.forEach(p => {
+        p.classList.toggle('active', p.dataset.pane === name);
+      });
+    });
+  });
+})();
