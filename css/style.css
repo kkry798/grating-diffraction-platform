@@ -871,7 +871,7 @@ html { scrollbar-color: #7a5cff #070714; scrollbar-width: thin; }
   box-shadow: 0 0 0 1px rgba(56,232,255,.15), 0 0 34px rgba(56,232,255,.12);
 }
 .spec-version-img {
-  aspect-ratio: 16/9; overflow: hidden; padding: 12px;
+  aspect-ratio: 25 / 11; overflow: hidden; padding: 12px;
   background: radial-gradient(120% 120% at 50% 50%, #11142c 0%, #05060f 72%);
 }
 .spec-version-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
